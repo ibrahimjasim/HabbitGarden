@@ -25,7 +25,7 @@ final class HabitListViewModel{
     }
     
     func toggle(habit: Habit, context: ModelContext) {
-        if StreakCalculater.isCopmletedToday(completions: habit.completions) {
+        if StreakCalculator.isCompletedToday(completions: habit.completions) {
             // Allow undo
             if let today = habit.completions.first(where: {
                 Calendar.current.isDateInToday($0.date)
