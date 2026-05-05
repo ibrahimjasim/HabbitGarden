@@ -24,6 +24,9 @@ struct InsightEngine {
         if let dayInsight = bestDayOfWeek(completions: allCompletions) {
             insights.append(dayInsight)
         }
+        if let trendInsight = weeklyTrend(allCompletions) {
+            insights.append(trendInsight)
+        }
 
         return insights
     }
@@ -83,5 +86,36 @@ struct InsightEngine {
             symbol: "calendar",
             color: .blue
         )
+    }
+
+    private static func weeklyTrend(_ completions: [HabitCompletion]) -> SmartInsight? {
+        let calendar = Calendar.current
+        let now = Date()
+        guard let oneWeekAgo = calendar.date(byAdding: .day, value: -7, to: now),
+              let twoWeekAgo = calendar.date(byAdding: .day, value: -14, to: now) else { return nil }
+
+        let thisWeek = completions.filter { $0.date >= oneWeekAgo }.count
+        let lastWeek = completions.filter { $0.date >= twoWeekAgo && $0.date < oneWeekAgo }.count
+
+        guard lastWeek >= 3 else { return nil } // need a baseline
+
+        let change = (Double(thisWeek) - Double(lastWeek)) / Double(lastWeek) * 100
+        guard abs(change) > 15 else { return nil } // Skip noise
+
+        if change > 0 {
+            return SmartInsight(
+                title: "You're trending up",
+                message: "You've completed \(Int(change))% more than last week. Keep going!",
+                symbol: "chart.line.uptrend.xyaxis",
+                color: .green
+            )
+        } else {
+            return SmartInsight(
+                title: "Slight dip this week",
+                message: "You're \(Int(abs(change)))% behind last week. Want to catch up?",
+                symbol: "chart.line.downtrend.xyaxis",
+                color: .red
+            )
+        }
     }
 }
