@@ -14,5 +14,17 @@ struct SmartInsight: Identifiable, Codable {
     let title: String
     let message: String
     let symbol: String
-    let color: Color
+    let colorName: String
+
+    var color: Color {
+        switch colorName {
+        case "red": return .red
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "green": return .green
+        case "blue": return .blue
+        case "purple": return .purple
+        default: return .primary
+        }
+    }
 }
