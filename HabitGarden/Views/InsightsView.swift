@@ -42,6 +42,11 @@ struct InsightsView: View {
             .max() ?? 0
     }
 
+    /// Pattern-detection insights surfaced when there's enough data.
+    private var insights: [SmartInsight] {
+        InsightEngine.generate(habits: habits)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -82,6 +87,21 @@ struct InsightsView: View {
                         }
                     }
                     .frame(height: 220)
+                }
+
+                // MARK: Smart Insights
+                if !insights.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "sparkles")
+                                .foregroundStyle(.purple)
+                            Text("Smart insights")
+                                .font(.headline)
+                        }
+                        ForEach(insights) { insight in
+                            InsightCard(insight: insight)
+                        }
+                    }
                 }
 
                 // MARK: Per-habit streaks
@@ -126,6 +146,48 @@ private struct DailyCount: Identifiable {
     var id: Date { date }
     let date: Date
     let count: Int
+}
+
+/// One smart-insight row. Handles both SF Symbol names and emoji symbols.
+private struct InsightCard: View {
+    let insight: SmartInsight
+
+    /// True if the symbol string is an emoji rather than an SF Symbol name.
+    private var symbolIsEmoji: Bool {
+        guard let first = insight.symbol.unicodeScalars.first else { return false }
+        return first.value > 127
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Group {
+                if symbolIsEmoji {
+                    Text(insight.symbol).font(.title2)
+                } else {
+                    Image(systemName: insight.symbol)
+                        .font(.title2)
+                        .foregroundStyle(insight.color)
+                }
+            }
+            .frame(width: 36, height: 36)
+            .background(insight.color.opacity(0.15))
+            .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(insight.title)
+                    .font(.subheadline.bold())
+                Text(insight.message)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.secondarySystemBackground))
+        )
+    }
 }
 
 /// A small reusable card for top-level stats.
