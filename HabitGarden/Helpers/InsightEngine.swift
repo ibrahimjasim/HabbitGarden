@@ -27,6 +27,9 @@ struct InsightEngine {
         if let trendInsight = weeklyTrend(allCompletions) {
             insights.append(trendInsight)
         }
+        if let topInsight = mostConsistentHabit(habits: habits) {
+            insights.append(topInsight)
+        }
 
         return insights
     }
@@ -117,5 +120,28 @@ struct InsightEngine {
                 color: .red
             )
         }
+    }
+
+    private static func mostConsistentHabit(habits: [Habit]) -> SmartInsight? {
+        guard habits.count > 2 else { return nil }
+        let calendar = Calendar.current
+
+        let scored = habits.map { habit -> (Habit, Double) in
+            let days: [Date] = (0..<7).map {
+                calendar.startOfDay(for: calendar.date(byAdding: .day, value: -$0, to: .now)!)
+            }
+            let completedDays = Set(habit.completions.map { calendar.startOfDay(for: $0.date) })
+            let hits = days.filter { completedDays.contains($0) }.count
+            return (habit, Double(hits) / 7.0)
+        }
+
+        guard let top = scored.max(by: { $0.1 < $1.1 }), top.1 > 0.5 else { return nil }
+
+        return SmartInsight(
+            title: "Your strongest habit",
+            message: "\(top.0.emoji) \(top.0.name) - \(Int(top.1 * 100))% this week",
+            symbol: "star.fill",
+            color: .yellow
+        )
     }
 }
