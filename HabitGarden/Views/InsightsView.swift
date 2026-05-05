@@ -28,6 +28,7 @@ struct InsightsView: View {
             return DailyCount(date: start, count: count)
         }
     }
+    
 
     /// Total completions across all habits this week — for the headline number.
     private var weekTotal: Int {

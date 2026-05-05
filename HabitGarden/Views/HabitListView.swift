@@ -47,6 +47,13 @@ struct HabitListView: View {
                         Image(systemName: "chart.bar.fill")
                     }
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        GardenView()
+                    } label: {
+                        Image(systemName: "leaf.fill")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showAddSheet = true
