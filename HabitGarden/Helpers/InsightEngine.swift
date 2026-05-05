@@ -21,6 +21,9 @@ struct InsightEngine {
         if let timeInsight = bestTimeOfDay(completions: allCompletions) {
             insights.append(timeInsight)
         }
+        if let dayInsight = bestDayOfWeek(completions: allCompletions) {
+            insights.append(dayInsight)
+        }
 
         return insights
     }
@@ -58,6 +61,27 @@ struct InsightEngine {
             message: "\(percent)% of your habits get done in the \(best.key).",
             symbol: symbol,
             color: .orange
+        )
+    }
+
+    /// Finds your most productive day of the week.
+    private static func bestDayOfWeek(completions: [HabitCompletion]) -> SmartInsight? {
+        let calendar = Calendar.current
+        let buckets = Dictionary(grouping: completions) {
+            calendar.component(.weekday, from: $0.date)
+        }
+
+        guard let best = buckets.max(by: { $0.value.count < $1.value.count }) else { return nil }
+        guard best.value.count > 3 else { return nil }
+
+        // weekday: 1 = Sunday, 2 = Monday, etc
+        let dayName = calendar.weekdaySymbols[best.key - 1]
+
+        return SmartInsight(
+            title: "\(dayName)s are your strongest day",
+            message: "You've completed \(best.value.count) habits on \(dayName)s.",
+            symbol: "calendar",
+            color: .blue
         )
     }
 }
