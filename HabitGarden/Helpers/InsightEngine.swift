@@ -66,7 +66,7 @@ struct InsightEngine {
             title: "You're a \(best.key) person",
             message: "\(percent)% of your habits get done in the \(best.key).",
             symbol: symbol,
-            color: .orange
+            colorName: "orange"
         )
     }
 
@@ -87,7 +87,7 @@ struct InsightEngine {
             title: "\(dayName)s are your strongest day",
             message: "You've completed \(best.value.count) habits on \(dayName)s.",
             symbol: "calendar",
-            color: .blue
+            colorName: "blue"
         )
     }
 
@@ -110,14 +110,14 @@ struct InsightEngine {
                 title: "You're trending up",
                 message: "You've completed \(Int(change))% more than last week. Keep going!",
                 symbol: "chart.line.uptrend.xyaxis",
-                color: .green
+                colorName: "green"
             )
         } else {
             return SmartInsight(
                 title: "Slight dip this week",
                 message: "You're \(Int(abs(change)))% behind last week. Want to catch up?",
                 symbol: "chart.line.downtrend.xyaxis",
-                color: .red
+                colorName: "red"
             )
         }
     }
@@ -141,7 +141,7 @@ struct InsightEngine {
             title: "Your strongest habit",
             message: "\(top.0.emoji) \(top.0.name) - \(Int(top.1 * 100))% this week",
             symbol: "star.fill",
-            color: .yellow
+            colorName: "yellow"
         )
     }
 }
