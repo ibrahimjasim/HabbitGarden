@@ -16,6 +16,7 @@ struct AddHabitView: View {
 
     @State private var name = ""
     @State private var emoji = "🌱"
+    @State private var customEmoji = ""
 
     private let emojis = ["🌱", "💧", "📚", "🏃", "🧘", "💤", "🥗", "✍️", "🎨", "🎵"]
 
@@ -38,10 +39,36 @@ struct AddHabitView: View {
                                 )
                                 .onTapGesture {
                                     emoji = item
+                                    customEmoji = ""
                                 }
                         }
                     }
                     .padding(.vertical, 4)
+
+                    HStack {
+                        Image(systemName: "pencil.tip")
+                            .foregroundStyle(.secondary)
+                        TextField("Or type your own emoji", text: $customEmoji)
+                            .onChange(of: customEmoji) { _, newValue in
+                                // Keep only the first grapheme cluster so
+                                // compound emojis like 👨‍👩‍👧 still work.
+                                guard let first = newValue.first else { return }
+                                let single = String(first)
+                                if customEmoji != single {
+                                    customEmoji = single
+                                }
+                                emoji = single
+                            }
+                        if !customEmoji.isEmpty {
+                            Text(customEmoji)
+                                .font(.title2)
+                                .padding(6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.green.opacity(0.25))
+                                )
+                        }
+                    }
                 }
             }
             .navigationTitle("New habit")
