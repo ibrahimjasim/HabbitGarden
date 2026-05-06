@@ -17,6 +17,7 @@ struct AddHabitView: View {
     @State private var name = ""
     @State private var emoji = "🌱"
     @State private var showEmojiPicker = false
+    @State private var targetPerDay = 1
 
     private let emojis = ["🌱", "💧", "📚", "🏃", "🧘", "💤", "🥗", "✍️", "🎨", "🎵"]
 
@@ -30,6 +31,10 @@ struct AddHabitView: View {
             Form {
                 Section("Name") {
                     TextField("e.g. Morning walk", text: $name)
+                }
+                
+                Section("How many times per day?") {
+                    Stepper("\(targetPerDay) time\(targetPerDay == 1 ? "" : "s")", value: $targetPerDay, in: 1...20)
                 }
 
                 Section("Symbol") {
