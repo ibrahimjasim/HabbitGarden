@@ -38,7 +38,7 @@ struct InsightsView: View {
     /// Longest current streak across all habits — the "best of" stat.
     private var bestStreak: Int {
         habits
-            .map { StreakCalculator.currentStreak(completions: $0.completions) }
+            .map { StreakCalculator.currentStreak(for: $0) }
             .max() ?? 0
     }
 
@@ -120,7 +120,7 @@ struct InsightsView: View {
                                 Text(habit.name)
                                 Spacer()
                                 Label(
-                                    "\(StreakCalculator.currentStreak(completions: habit.completions))",
+                                    "\(StreakCalculator.currentStreak(for: habit))",
                                     systemImage: "flame.fill"
                                 )
                                 .foregroundStyle(.orange)
