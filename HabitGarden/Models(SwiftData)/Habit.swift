@@ -20,7 +20,7 @@ final class Habit {
     var completions: [HabitCompletion] = []
     
     
-    init(name: String, emoji: String = "🌱", colorHex: String = "#34C759") {
+    init(name: String, emoji: String = "🌱", colorHex: String = "#34C759", targetPerDay: Int = 1) {
             self.name = name
             self.emoji = emoji
             self.colorHex = colorHex
