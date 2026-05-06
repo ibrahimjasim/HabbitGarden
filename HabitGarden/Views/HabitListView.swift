@@ -94,16 +94,20 @@ struct HabitRow: View {
             }
             VStack(alignment: .leading) {
                 Text(habit.name).font(.headline)
-                Text("🔥 \(StreakCalculator.currentStreak(completions: habit.completions)) day streak")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text("🔥 \(StreakCalculator.currentStreak(for: habit)) day streak")
+                if habit.targetPerDay > 1 {
+                    Text("\(StreakCalculator.isCompletedToday(habit.completions))/\(habit.targetPerDay)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer()
             Button {
                 onToggle()
             } label: {
-                Image(systemName: StreakCalculator.isCompletedToday(completions: habit.completions)
-                    ? "checkmark.circle.fill" : "circle")
+                Image(systemName: StreakCalculator.isCompletedToday(habit)
+                    ? "checkmark.circle.fill"
+                    : (habit.targetPerDay > 1 ? "plus.circle.fill" : "circle"))
                     .font(.title)
                     .foregroundStyle(.green)
             }
