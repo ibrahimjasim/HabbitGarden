@@ -96,7 +96,16 @@ struct HabitRow: View {
                 Text(habit.emoji).font(.title)
             }
             VStack(alignment: .leading) {
+                HStack(spacing: 6) {
+                    
                 Text(habit.name).font(.headline)
+                    if habit.reminderTime != nil {
+                        Image(systemName : "bell.fill")
+                            .font (.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
+                
                 Text("🔥 \(StreakCalculator.currentStreak(for: habit)) day streak")
                 if habit.targetPerDay > 1 {
                     Text("\(StreakCalculator.isCompletedToday(habit.completions))/\(habit.targetPerDay)")
