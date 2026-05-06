@@ -16,9 +16,14 @@ struct AddHabitView: View {
 
     @State private var name = ""
     @State private var emoji = "🌱"
-    @State private var customEmoji = ""
+    @State private var showEmojiPicker = false
 
     private let emojis = ["🌱", "💧", "📚", "🏃", "🧘", "💤", "🥗", "✍️", "🎨", "🎵"]
+
+    /// True when the chosen emoji isn't one of the quick presets and isn't empty.
+    private var emojiIsCustom: Bool {
+        !emoji.isEmpty && !emojis.contains(emoji)
+    }
 
     var body: some View {
         NavigationStack {
@@ -39,35 +44,50 @@ struct AddHabitView: View {
                                 )
                                 .onTapGesture {
                                     emoji = item
-                                    customEmoji = ""
                                 }
                         }
                     }
                     .padding(.vertical, 4)
 
-                    HStack {
-                        Image(systemName: "pencil.tip")
-                            .foregroundStyle(.secondary)
-                        TextField("Or type your own emoji", text: $customEmoji)
-                            .onChange(of: customEmoji) { _, newValue in
-                                // Keep only the first grapheme cluster so
-                                // compound emojis like 👨‍👩‍👧 still work.
-                                guard let first = newValue.first else { return }
-                                let single = String(first)
-                                if customEmoji != single {
-                                    customEmoji = single
+                    HStack(spacing: 8) {
+                        Button {
+                            showEmojiPicker = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "face.smiling")
+                                Text("Browse more")
+                                if emojiIsCustom {
+                                    Spacer()
+                                    Text(emoji)
+                                        .font(.title3)
                                 }
-                                emoji = single
                             }
-                        if !customEmoji.isEmpty {
-                            Text(customEmoji)
-                                .font(.title2)
-                                .padding(6)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.green.opacity(0.25))
-                                )
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(.tertiarySystemBackground))
+                            )
                         }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            emoji = ""
+                        } label: {
+                            HStack {
+                                Image(systemName: "circle.slash")
+                                Text("None")
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(emoji.isEmpty
+                                          ? Color.green.opacity(0.25)
+                                          : Color(.tertiarySystemBackground))
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -85,6 +105,91 @@ struct AddHabitView: View {
                         }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .sheet(isPresented: $showEmojiPicker) {
+                EmojiPickerSheet(selection: $emoji)
+            }
+        }
+    }
+}
+
+// MARK: - Emoji picker sheet
+
+/// A categorised grid of emojis. Tap one and the sheet dismisses with
+/// the binding updated to the chosen emoji.
+private struct EmojiPickerSheet: View {
+    @Binding var selection: String
+    @Environment(\.dismiss) private var dismiss
+
+    private let categories: [(name: String, emojis: [String])] = [
+        ("Faces & people", [
+            "😀", "😎", "🤩", "🥳", "🤓", "😇", "🤗", "🥰",
+            "😴", "🤔", "🙏", "👋", "💪", "🧠", "👀", "👶"
+        ]),
+        ("Activities", [
+            "🏃", "🧘", "🏋️", "🚴", "🏊", "🤸", "🚶", "🏆",
+            "⚽️", "🏀", "🎾", "🎮", "🎯", "🎲", "🎤", "🎧"
+        ]),
+        ("Food & drink", [
+            "🍎", "🍌", "🍓", "🥗", "🥑", "🥦", "🌽", "🍞",
+            "🍕", "🍣", "🥛", "☕️", "🍵", "🍷", "🧃", "💊"
+        ]),
+        ("Nature", [
+            "🌱", "🌿", "🍀", "🌳", "🌲", "🌵", "🌷", "🌸",
+            "🌹", "🌻", "🌼", "🌞", "🌝", "⭐️", "🌟", "✨",
+            "🔥", "💧", "🌊", "❄️"
+        ]),
+        ("Objects", [
+            "📚", "📖", "✍️", "🎨", "🎵", "🎶", "🎸", "💻",
+            "📱", "⌚️", "📷", "🔬", "🧪", "💡", "🔑", "💰",
+            "💼", "🛏", "🚿", "🧴", "🧼", "🧹"
+        ]),
+        ("Symbols", [
+            "❤️", "💛", "💚", "💙", "💜", "🤍", "🖤", "💯",
+            "✅", "✔️", "⚡️", "🌈", "☀️", "☁️", "🎯", "💎", "👑"
+        ])
+    ]
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 6)
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 20) {
+                    ForEach(categories, id: \.name) { category in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(category.name)
+                                .font(.headline)
+                            LazyVGrid(columns: columns, spacing: 8) {
+                                ForEach(category.emojis, id: \.self) { item in
+                                    Button {
+                                        selection = item
+                                        dismiss()
+                                    } label: {
+                                        Text(item)
+                                            .font(.system(size: 32))
+                                            .frame(width: 44, height: 44)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(selection == item
+                                                          ? Color.green.opacity(0.25)
+                                                          : Color(.tertiarySystemBackground))
+                                            )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Choose emoji")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
                 }
             }
         }
