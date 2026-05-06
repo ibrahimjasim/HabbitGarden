@@ -10,6 +10,11 @@ import SwiftData
 
 @main
 struct HabitGardenApp: App {
+    init () {
+        Task {
+            await NotificationManager.requestNotificationPermission()
+        }
+    }
     var body: some Scene {
         WindowGroup {
             HabitListView()
