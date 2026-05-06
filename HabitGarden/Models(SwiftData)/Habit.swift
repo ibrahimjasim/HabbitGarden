@@ -15,6 +15,7 @@ final class Habit {
     var colorHex: String
     var createdAt: Date
     var reminderTime: Date?
+    var targetPerDay: Int = 1
     @Relationship(deleteRule: .cascade, inverse: \HabitCompletion.habit)
     var completions: [HabitCompletion] = []
     
@@ -24,5 +25,6 @@ final class Habit {
             self.emoji = emoji
             self.colorHex = colorHex
             self.createdAt = .now
+            self.targetPerDay = targetPerDay
         }
 }
