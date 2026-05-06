@@ -11,16 +11,15 @@ struct StreakCalculator {
 
     /// Returns the number of consecutive days the habit was completed,
     /// counting backwards from today.
-    static func currentStreak(completions: [HabitCompletion]) -> Int {
+    static func currentStreak(for habit: Habit) -> Int {
         let calendar = Calendar.current
 
-        // Convert each completion date to "start of day" so we ignore the time.
-        // Using a Set makes the lookup below O(1) instead of O(n).
-        let completedDays = Set(completions.map {
+        let perDay = Dictionary(grouping: habit.completions) {
             calendar.startOfDay(for: $0.date)
-        })
+        }
 
-        var streak = 0
+        let completedDays = Set(perDay.filter { $0.value.count >= habit.targetPerDay }.keys)
+        
         var day = calendar.startOfDay(for: .now)
 
         // Edge case: if the user hasn't checked off today yet, don't reset
@@ -38,11 +37,17 @@ struct StreakCalculator {
         return streak
     }
 
-    /// Returns true if the habit has at least one completion today.
-    static func isCompletedToday(completions: [HabitCompletion]) -> Bool {
+    /// Number of completions today (handles multi-completion habits).
+    static func isCompletedToday(_ completions: [HabitCompletion]) -> Int {
         let today = Calendar.current.startOfDay(for: .now)
-        return completions.contains {
+        return completions.filter {
             Calendar.current.isDate($0.date, inSameDayAs: today)
-        }
+        }.count
+    }
+    /// True if the habit has met its daily target.
+    static func isCompletedToday(_ habit: Habit) -> Bool {
+        isCompletedToday(habit.completions) >= habit.targetPerDay
     }
 }
+
+
