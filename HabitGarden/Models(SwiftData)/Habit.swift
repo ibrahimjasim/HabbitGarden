@@ -10,6 +10,7 @@ import SwiftData
 
 @Model
 final class Habit {
+    @Attribute(.unique) var id = UUID()
     var name: String
     var emoji: String
     var colorHex: String
