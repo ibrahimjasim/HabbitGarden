@@ -13,13 +13,13 @@ import SwiftData
 final class HabitListViewModel{
     var errorMessage: String?
     
-    func addHabit(name: String, emoji: String, context: ModelContext) {
+    func addHabit(name: String, emoji: String, targetPerDay: Int = 1, context: ModelContext) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             errorMessage = "Name is required"
             return
         }
-        let habit = Habit(name: trimmed, emoji: emoji)
+        let habit = Habit(name: trimmed, emoji: emoji, targetPerDay: targetPerDay)
         context.insert(habit)
         save(context: context)
     }

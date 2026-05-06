@@ -104,7 +104,7 @@ struct AddHabitView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        viewModel.addHabit(name: name, emoji: emoji, context: context)
+                        viewModel.addHabit(name: name, emoji: emoji, targetPerDay: targetPerDay, context: context)
                         if viewModel.errorMessage == nil {
                             dismiss()
                         }
