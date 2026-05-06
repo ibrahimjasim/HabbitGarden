@@ -13,17 +13,27 @@ import SwiftData
 final class HabitListViewModel{
     var errorMessage: String?
     
-    func addHabit(name: String, emoji: String, targetPerDay: Int = 1, context: ModelContext) {
+    func addHabit(name: String, emoji: String, targetPerDay: Int = 1, reminderTime: Date? = nil, context: ModelContext) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             errorMessage = "Name is required"
             return
         }
         let habit = Habit(name: trimmed, emoji: emoji, targetPerDay: targetPerDay)
+        habit.reminderTime = reminderTime
         context.insert(habit)
         save(context: context)
-    }
-    
+        
+        if let reminderTime {
+            NotificationManager.schedule(
+                habitId: habit.id.uuidString,
+                name: habit.name,
+                emoji: habit.emoji,
+                time: reminderTime
+            )
+        }
+      }
+
     func toggle(habit: Habit, context: ModelContext) {
         let todayCount = StreakCalculator.isCompletedToday(habit.completions)
         if todayCount >= habit.targetPerDay {
@@ -42,6 +52,7 @@ final class HabitListViewModel{
     }
     
     func delete(habit: Habit, context: ModelContext) {
+        NotificationManager.cancel(habitId: habit.id.uuidString)
         context.delete(habit)
         save(context: context)
     }
