@@ -18,6 +18,9 @@ struct AddHabitView: View {
     @State private var emoji = "🌱"
     @State private var showEmojiPicker = false
     @State private var targetPerDay = 1
+    @State private var enableReminders = false
+    @State private var reminderTime = Calendar.current.date(
+        bySettingHour: 8, minute: 0, second: 0, of: .now) ?? .now
 
     private let emojis = ["🌱", "💧", "📚", "🏃", "🧘", "💤", "🥗", "✍️", "🎨", "🎵"]
 
@@ -95,6 +98,14 @@ struct AddHabitView: View {
                         .buttonStyle(.plain)
                     }
                 }
+                
+                Section ("Reminder") {
+                    Toggle("Daily reminder", isOn: $enableReminders)
+                    if enableReminders {
+                        DatePicker("Time", selection: $reminderTime,
+                                   displayedComponents: .hourAndMinute)
+                    }
+                }
             }
             .navigationTitle("New habit")
             .navigationBarTitleDisplayMode(.inline)
@@ -104,7 +115,13 @@ struct AddHabitView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        viewModel.addHabit(name: name, emoji: emoji, targetPerDay: targetPerDay, context: context)
+                        viewModel.addHabit(
+                            name: name,
+                            emoji: emoji,
+                            targetPerDay: targetPerDay,
+                            reminderTime: enableReminders ? reminderTime : nil,
+                            context: context
+                        )
                         if viewModel.errorMessage == nil {
                             dismiss()
                         }
