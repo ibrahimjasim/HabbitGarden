@@ -145,12 +145,25 @@ struct GardenView: View {
             )
         }
 
-        // Flower — the habit's emoji, scaled by growth
-        let flowerSize: CGFloat = 22 + 30 * growth
-        context.draw(
-            Text(emoji).font(.system(size: flowerSize)),
-            at: CGPoint(x: topX, y: topY)
-        )
+        // Flower — the habit's emoji, scaled by growth.
+        // If the habit has no emoji, draw a simple flower bud instead so the
+        // plant still looks complete.
+        if emoji.isEmpty {
+            let budSize: CGFloat = 10 + 14 * growth
+            context.fill(
+                Path(ellipseIn: CGRect(x: topX - budSize / 2,
+                                       y: topY - budSize / 2,
+                                       width: budSize,
+                                       height: budSize)),
+                with: .color(.pink.opacity(0.85))
+            )
+        } else {
+            let flowerSize: CGFloat = 22 + 30 * growth
+            context.draw(
+                Text(emoji).font(.system(size: flowerSize)),
+                at: CGPoint(x: topX, y: topY)
+            )
+        }
     }
 
     // MARK: - Growth logic
