@@ -85,7 +85,13 @@ struct HabitRow: View {
 
     var body: some View {
         HStack {
-            Text(habit.emoji).font(.title)
+            if habit.emoji.isEmpty {
+                Image(systemName: "circle.dashed")
+                    .font(.title)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(habit.emoji).font(.title)
+            }
             VStack(alignment: .leading) {
                 Text(habit.name).font(.headline)
                 Text("🔥 \(StreakCalculator.currentStreak(completions: habit.completions)) day streak")
