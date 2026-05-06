@@ -26,8 +26,10 @@ struct HabitListView: View {
                 } else {
                     List {
                         ForEach(habits) { habit in
-                            HabitRow(habit: habit) {
-                                viewModel.toggle(habit: habit, context: context)
+                            NavigationLink(destination: HabitDetailView(habit: habit)) {
+                                HabitRow(habit: habit) {
+                                    viewModel.toggle(habit: habit, context: context)
+                                }
                             }
                         }
                         .onDelete { indexSet in
@@ -42,6 +44,7 @@ struct HabitListView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
+                        
                         InsightsView()
                     } label: {
                         Image(systemName: "chart.bar.fill")
