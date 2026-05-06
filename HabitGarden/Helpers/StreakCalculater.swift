@@ -29,6 +29,7 @@ struct StreakCalculator {
         }
 
         // Walk backwards day by day. Stop on the first missing day.
+        var streak = 0
         while completedDays.contains(day) {
             streak += 1
             day = calendar.date(byAdding: .day, value: -1, to: day)!
