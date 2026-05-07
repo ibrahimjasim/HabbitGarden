@@ -132,6 +132,17 @@ struct AddHabitView: View {
             .sheet(isPresented: $showEmojiPicker) {
                 EmojiPickerSheet(selection: $emoji)
             }
+            .alert(
+                "Something went wrong",
+                isPresented: Binding(
+                    get: { viewModel.errorMessage != nil },
+                    set: { if !$0 { viewModel.errorMessage = nil } }
+                )
+            ) {
+                Button("OK") { viewModel.errorMessage = nil }
+            } message: {
+                Text(viewModel.errorMessage ?? "")
+            }
         }
     }
 }
