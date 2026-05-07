@@ -59,7 +59,10 @@ struct LoginView: View {
         }
         .alert(
             "Could not sign in",
-            isPresented: .constant(auth.errorMessage != nil)
+            isPresented: Binding(
+                get: { auth.errorMessage != nil },
+                set: { if !$0 { auth.errorMessage = nil } }
+            )
         ) {
             Button("OK") {
                 auth.errorMessage = nil
