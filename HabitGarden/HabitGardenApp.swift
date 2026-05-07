@@ -10,14 +10,21 @@ import SwiftData
 
 @main
 struct HabitGardenApp: App {
-    init () {
+    @State private var auth = AuthViewModel()
+
+    init() {
         Task {
             await NotificationManager.requestNotificationPermission()
         }
     }
+
     var body: some Scene {
         WindowGroup {
-            HabitListView()
+            if auth.isLoggedIn {
+                HabitListView()
+            } else {
+                LoginView(auth: auth)
+            }
         }
         .modelContainer(for: [Habit.self, HabitCompletion.self])
     }
