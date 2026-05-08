@@ -8,10 +8,12 @@
 import Foundation
 import SwiftUI
 
+// Analyzes habit data and generates smart insights for the Insights screen
+// Each method looks for a specific pattern and returns an insight if one is found
 struct InsightEngine {
 
-    /// Returns up to 4 insights worth showing right now.
-    /// Filters out insights with too little data so they don't look silly.
+    // Generates up to 4 insights based on the user's habit data
+    
     static func generate(habits: [Habit]) -> [SmartInsight] {
         let allCompletions = habits.flatMap { $0.completions }
         guard allCompletions.count > 5 else { return [] }
@@ -36,8 +38,9 @@ struct InsightEngine {
 
     // MARK: - Individual insights
 
-    // Returns the bucket with the most.
+    // Finds when the user is most productive (Morning, Afternoon, Evening, or Night)
     private static func bestTimeOfDay(completions: [HabitCompletion]) -> SmartInsight? {
+        // Group completions into time-of-day buckets
         let buckets: [String: [HabitCompletion]] = Dictionary(grouping: completions) { c in
             let hour = Calendar.current.component(.hour, from: c.date)
             switch hour {
@@ -48,11 +51,12 @@ struct InsightEngine {
             }
         }
 
+        // Find the bucket with the most completions
         guard let best = buckets.max(by: { $0.value.count < $1.value.count }) else { return nil }
 
         let total = completions.count
         let percent = best.value.count * 100 / total
-        guard percent >= 35 else { return nil } // skip if it's not actually a pattern
+        guard percent >= 35 else { return nil } // Only show if it's a clear pattern
 
         let symbol: String
         switch best.key {
@@ -70,7 +74,7 @@ struct InsightEngine {
         )
     }
 
-    /// Finds your most productive day of the week.
+    // Finds the day of the week with the most completions
     private static func bestDayOfWeek(completions: [HabitCompletion]) -> SmartInsight? {
         let calendar = Calendar.current
         let buckets = Dictionary(grouping: completions) {
@@ -80,7 +84,7 @@ struct InsightEngine {
         guard let best = buckets.max(by: { $0.value.count < $1.value.count }) else { return nil }
         guard best.value.count > 3 else { return nil }
 
-        // weekday: 1 = Sunday, 2 = Monday, etc
+        // Convert weekday number to name (1 = Sunday, 2 = Monday, etc.)
         let dayName = calendar.weekdaySymbols[best.key - 1]
 
         return SmartInsight(
@@ -91,6 +95,7 @@ struct InsightEngine {
         )
     }
 
+    // Compares this week vs last week to show if the user is improving or slipping
     private static func weeklyTrend(_ completions: [HabitCompletion]) -> SmartInsight? {
         let calendar = Calendar.current
         let now = Date()
@@ -100,10 +105,11 @@ struct InsightEngine {
         let thisWeek = completions.filter { $0.date >= oneWeekAgo }.count
         let lastWeek = completions.filter { $0.date >= twoWeekAgo && $0.date < oneWeekAgo }.count
 
-        guard lastWeek >= 3 else { return nil } // need a baseline
+        guard lastWeek >= 3 else { return nil } // Need a baseline to compare against
 
+        // Calculate the percentage change between the two weeks
         let change = (Double(thisWeek) - Double(lastWeek)) / Double(lastWeek) * 100
-        guard abs(change) > 15 else { return nil } // Skip noise
+        guard abs(change) > 15 else { return nil } // Skip small changes (noise)
 
         if change > 0 {
             return SmartInsight(
@@ -122,10 +128,12 @@ struct InsightEngine {
         }
     }
 
+    // Finds the habit with the highest completion rate over the last 7 days
     private static func mostConsistentHabit(habits: [Habit]) -> SmartInsight? {
         guard habits.count > 2 else { return nil }
         let calendar = Calendar.current
 
+        // Score each habit by how many of the last 7 days it was completed
         let scored = habits.map { habit -> (Habit, Double) in
             let days: [Date] = (0..<7).map {
                 calendar.startOfDay(for: calendar.date(byAdding: .day, value: -$0, to: .now)!)
@@ -135,6 +143,7 @@ struct InsightEngine {
             return (habit, Double(hits) / 7.0)
         }
 
+        // Only show if the top habit was completed more than 50% of the week
         guard let top = scored.max(by: { $0.1 < $1.1 }), top.1 > 0.5 else { return nil }
 
         return SmartInsight(
