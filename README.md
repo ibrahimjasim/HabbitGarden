@@ -1,165 +1,322 @@
-# HabitGarden
+# HABITGARDEN
 
-A SwiftUI habit tracker built for iOS. Each habit becomes a plant in an animated garden that grows with your consistency, and pattern-detection "smart insights" surface observations about your behavior.
-
-Built with SwiftUI, SwiftData, and Swift Charts.
+![Platform](https://img.shields.io/badge/Platform-iOS_17+-blue) ![Swift](https://img.shields.io/badge/Swift-5.9-orange) ![SwiftUI](https://img.shields.io/badge/SwiftUI-5-green) ![SwiftData](https://img.shields.io/badge/SwiftData-1.0-purple)
 
 ---
 
-## Krav uppfyllda / Requirements covered
+## Introduction to HabitGarden
 
-### Godkänt (G)
+HabitGarden is a native iOS habit-tracking application built with SwiftUI and SwiftData. The app transforms daily habits into a visual garden where each habit grows as a plant based on the user's consistency. The core idea is to make habit tracking fun, visual and motivating by combining practical tracking tools with a gamified garden experience.
 
-| Krav | Implementation |
-|---|---|
-| Startskärm som listar alla vanor | `HabitListView` with `@Query` from SwiftData |
-| Skapa ny vana | `AddHabitView` presented as a `Sheet` |
-| Markera som "Utförd" för dagens datum | Toggle button in `HabitRow`, handled by `HabitListViewModel.toggle(...)` |
-| Beräkna och visa "Streak" | `StreakCalculator.currentStreak(...)` with same-day deduplication |
-| Radera en vana | `.onDelete` swipe action on `List` |
-| Standardkomponenter | `NavigationStack`, `List`, `Sheet`, `Form`, SF Symbols throughout |
-| Felhantering i gränssnittet | `viewModel.errorMessage` surfaced via `.alert(...)` |
-| Git-historik | Continuous commits across the development period |
+Users can create accounts, track habits, set daily targets, enable reminders, monitor streaks and view smart insights — all while watching their garden grow.
 
-### Väl Godkänt (VG)
+---
 
-| Krav | Implementation |
-|---|---|
-| Mappstruktur (Models / Views / ViewModels) | See [Project Structure](#project-structure) below |
-| 15+ meaningful Git commits | See `git log --oneline` |
-| **Spår 3 — SwiftUI Charts** | `InsightsView` with bar chart, stat cards, and per-habit streaks |
+## UX
 
-### Bonus (beyond assignment requirements)
+### Site Goals & Audience
 
-- **GardenView** — animated `Canvas` with time-of-day sky and growing plants
-- **InsightEngine** — pattern-detection statistics presented as smart insights
+HabitGarden is designed for individuals who want to build and maintain positive daily habits. The target audience ranges from students to professionals who benefit from a simple, visually rewarding tracking system. The app avoids complexity and focuses on a clean, distraction-free experience that encourages consistency.
+
+The broader goals include:
+- Making habit tracking feel rewarding through visual plant growth.
+- Providing actionable insights based on user behavior patterns.
+- Keeping all data local and private on the user's device.
+- Supporting multiple user accounts on a single device.
+
+### App Layout
+
+The app follows a clean, minimal layout using native SwiftUI components:
+- **Navigation-based flow** — all screens are accessible from the main habit list via the toolbar.
+- **Form-based input** for creating and editing habits, following iOS design conventions.
+- **Card-based insights** for displaying statistics and smart patterns.
+- **Canvas-based garden** for the animated plant visualisation rendered at 30fps.
+
+### Color Scheme
+
+HabitGarden uses a nature-inspired, soft green palette that reinforces the gardening theme:
+- **Primary Green** (`#34C759`) — used for buttons, checkmarks, and active states.
+- **Soft system backgrounds** — ensuring readability across light and dark mode.
+- **Time-of-day gradients** — the Garden view changes sky colors dynamically based on the current hour (sunrise, daytime, sunset, night).
+
+---
+
+## UX Design
+
+### Navigation Map
+
+```
+App Launch
+    │
+    ├── Not logged in ──> LoginView (Sign In / Sign Up)
+    │                         │
+    │                         └── On success ──> HabitListView
+    │
+    └── Logged in ──> HabitListView (Main Screen)
+                          │
+                          ├── + Button ──> AddHabitView (Sheet)
+                          ├── Tap Habit ──> HabitDetailView
+                          ├── Chart Icon ──> InsightsView
+                          ├── Leaf Icon ──> GardenView
+                          └── Sign Out ──> LoginView
+```
+
+---
+
+## Main Features
+
+### User Authentication
+Local account system with sign up and sign in functionality. Passwords are hashed using **SHA-256** via Apple's CryptoKit framework before storage — plain text passwords are never saved. Sessions persist between app launches using UserDefaults so the user stays logged in.
+
+### Habit Tracking
+Users can create habits with a custom name, emoji symbol, daily target (1–20 times per day), and an optional daily reminder. Each habit is linked to the logged-in user, ensuring complete data isolation between accounts.
+
+### Daily Completion Toggle
+Tap the checkmark to mark a habit as done for today. For multi-target habits (e.g. "3 times per day"), each tap adds one completion. Tapping again after the target is met removes the last completion (undo).
+
+### Streak Calculator
+Counts consecutive days a habit was completed, working backwards from today. If the user hasn't completed the habit yet today, the streak counts from yesterday to avoid breaking active streaks unfairly.
+
+### Daily Reminders
+Users can enable a daily notification for each habit at a chosen time. Notifications are scheduled using `UNCalendarNotificationTrigger` and repeat every day. Deleting a habit automatically cancels its pending notification.
+
+### Garden View
+A visual representation of all habits as animated plants drawn on a SwiftUI Canvas. Each plant's height reflects the user's consistency over the last 7 days (0–100% growth). Plants sway gently using sine-wave animation, and the sky gradient changes based on the real time of day.
+
+### Smart Insights
+The InsightEngine analyzes habit completion data and surfaces up to 4 pattern-based insights:
+- **Best time of day** — Morning, Afternoon, Evening, or Night.
+- **Strongest day of the week** — the weekday with the most completions.
+- **Weekly trend** — percentage change comparing this week vs. last week.
+- **Most consistent habit** — the habit with the highest 7-day completion rate.
+
+### Insights Dashboard
+A statistics screen featuring:
+- Headline cards showing weekly completions and best streak.
+- A **7-day bar chart** built with Swift Charts.
+- Smart insight cards generated by the InsightEngine.
+- A per-habit streak breakdown list.
+
+### Emoji Picker
+A categorised emoji browser with 100+ emojis across 6 categories (Faces, Activities, Food, Nature, Objects, Symbols). Quick-pick presets are shown in the Add Habit form for fast selection, with a "Browse more" option for the full picker.
+
+### Per-User Data Isolation
+Each user only sees their own habits. The habit list is filtered by `userId` to ensure complete data separation between accounts on the same device.
+
+---
+
+## Visualised Features
+
+### Login Screen
+A clean sign in / sign up form with a segmented control to switch between modes. The name field only appears in sign up mode. The submit button is disabled until all required fields are filled. Error alerts appear for invalid input or duplicate emails.
+
+### Habit List
+The main screen showing all habits with their emoji, name, streak count, reminder indicator, and a completion toggle button. The toolbar provides access to Insights, Garden, Sign Out, and Add Habit.
+
+### Add Habit Form
+A form-based sheet with sections for name, daily target (stepper), emoji selection (grid + full picker), and an optional daily reminder with a time picker.
+
+### Habit Detail
+An edit screen displaying the habit's name, emoji (tap to change), and read-only statistics including current streak, total completions, target per day, and creation date.
+
+### Garden View
+An animated canvas rendering plants growing from the ground. Each habit is a plant with a curved stem, leaves (appearing at 30%+ growth), and its emoji displayed as the flower at the top. A sun or moon is drawn based on the time of day. The background sky uses gradients for sunrise, daytime, sunset, and nighttime.
+
+### Insights Screen
+A scrollable dashboard with stat cards at the top, a weekly bar chart in the middle, smart insight cards below, and a per-habit streak list at the bottom.
+
+---
+
+## Tech Used
+
+### Languages & Frameworks
+
+| Technology | Purpose |
+|-----------|---------|
+| **Swift 5.9** | Primary programming language |
+| **SwiftUI** | Declarative UI framework for all views |
+| **SwiftData** | Local database persistence (Apple's modern replacement for Core Data) |
+| **Swift Charts** | Bar chart on the Insights screen |
+| **CryptoKit** | SHA-256 password hashing |
+| **UserNotifications** | Daily reminder notifications |
+| **Canvas / TimelineView** | Animated garden rendering at 30fps |
+
+### Architecture & Patterns
+
+| Pattern | Usage |
+|---------|-------|
+| **MVVM** | Model-View-ViewModel separation of concerns |
+| **@Observable** | Swift's modern observation framework for reactive UI updates |
+| **@Environment** | Dependency injection for sharing AuthViewModel across all views |
+| **SwiftData @Model** | Declarative data models with automatic persistence |
+| **@Relationship** | Cascade delete rules between Habit and HabitCompletion |
+
+### Tools
+
+| Tool | Purpose |
+|------|---------|
+| **Xcode 16** | IDE and build system |
+| **Git & GitHub** | Version control and repository hosting |
+| **SF Symbols** | System icons used throughout the app |
 
 ---
 
 ## Project Structure
 
+The project follows the **MVVM (Model-View-ViewModel)** architecture:
+
 ```
 HabitGarden/
-├─ HabitGardenApp.swift          # @main entry point + SwiftData container
-├─ ContentView.swift              # legacy stub, can be removed
-├─ Models(SwiftData)/
-│   ├─ Habit.swift                # @Model class
-│   ├─ HabitCompletion.swift      # @Model class
-│   └─ Insght.swift                # SmartInsight value type
-├─ ViewModels/
-│   └─ HabitListViewModel.swift   # add / toggle / delete + error handling
-├─ Views/
-│   ├─ HabitListView.swift        # main screen: list + toolbar
-│   ├─ AddHabitView.swift         # new-habit sheet
-│   ├─ InsightsView.swift         # VG Track 3: charts + smart insights
-│   └─ GardenView.swift           # bonus: animated canvas garden
-├─ Helpers/
-│   ├─ StreakCalculater.swift     # streak math (filename pending rename)
-│   └─ InsightEngine.swift        # pattern-detection logic
-└─ Assets.xcassets
+├── Models (SwiftData)/
+│   ├── AppAccount.swift        — Registered user account (stored in database)
+│   ├── AppUser.swift           — Lightweight session info (stored in UserDefaults)
+│   ├── Habit.swift             — Main habit model with properties and relationships
+│   ├── HabitCompletion.swift   — Records each time a habit is completed
+│   └── Insght.swift            — Data model for smart insight cards
+│
+├── ViewModels/
+│   ├── AuthViewModel.swift     — Sign up, sign in, sign out, session persistence
+│   └── HabitListViewModel.swift— Add, toggle, and delete habits
+│
+├── Views/
+│   ├── LoginView.swift         — Sign in / Sign up screen
+│   ├── HabitListView.swift     — Main habit list with toolbar navigation
+│   ├── AddHabitView.swift      — Form to create a new habit
+│   ├── HabitDetailView.swift   — Edit screen with statistics
+│   ├── EmojiPickerView.swift   — Full emoji browser for habit symbols
+│   ├── GardenView.swift        — Animated garden with growing plants
+│   └── InsightsView.swift      — Charts, stats, and smart insights
+│
+├── Helpers/
+│   ├── NotificationManager.swift — Daily reminder notifications
+│   ├── StreakCalculater.swift    — Streak counting logic
+│   └── InsightEngine.swift       — Pattern detection for smart insights
+│
+└── HabitGardenApp.swift        — App entry point with auth gate and database setup
 ```
 
 ---
 
-## Data Schema
+## Data Models
 
-```
-Habit                                  (SwiftData @Model)
-├─ name: String
-├─ emoji: String                       # the plant face shown in the Garden
-├─ colorHex: String
-├─ createdAt: Date
-├─ reminderTime: Date?                 # reserved for future Track 2
-└─ completions: [HabitCompletion]      # cascade delete relationship
-       │
-       └── HabitCompletion             (SwiftData @Model)
-              ├─ date: Date
-              └─ habit: Habit?         # back-reference
+The app uses **SwiftData** as the local database:
 
-SmartInsight                           (value type, not persisted)
-├─ id: UUID
-├─ title: String
-├─ message: String
-├─ symbol: String                      # SF Symbol name OR emoji
-└─ colorName: String                   # mapped to Color via computed prop
-```
+| Model | Purpose |
+|-------|---------|
+| `AppAccount` | Stores registered user accounts with hashed passwords and unique emails |
+| `AppUser` | Lightweight Codable struct saved in UserDefaults for session persistence |
+| `Habit` | The main model — name, emoji, target per day, reminder time, linked to a user |
+| `HabitCompletion` | A single completion record with a timestamp, linked to a Habit via relationship |
+| `SmartInsight` | Represents an insight card generated by the InsightEngine (not persisted) |
 
-**Why a separate `HabitCompletion` model?** It lets us record an exact timestamp per check-in. That timestamp powers the streak calculator, the 7-day chart, and the "best time of day" smart insight. A simple `lastCompleted` field on `Habit` couldn't do any of that.
+**Relationships:**
+- Each `Habit` has many `HabitCompletion` records (cascade delete — deleting a habit removes all its completions).
+- Each `Habit` belongs to a user via `userId` (links to `AppAccount`).
 
 ---
 
-## Architecture
+## Testing
 
-The app follows **MVVM**:
+### Manual Testing
 
-- **Models** (`Habit`, `HabitCompletion`) — `@Model` classes managed by SwiftData. Persistence is automatic; views observe via `@Query`.
-- **ViewModel** (`HabitListViewModel`) — `@Observable` class containing mutating actions and an `errorMessage` published property.
-- **Views** (`HabitListView`, `AddHabitView`, `InsightsView`, `GardenView`) — pure SwiftUI, no direct database calls, only call into the ViewModel.
-- **Helpers** (`StreakCalculator`, `InsightEngine`) — stateless utility structs with `static` methods. Easy to test in isolation.
+| Feature | Test | Result |
+|---------|------|--------|
+| Sign Up | Create account with name, email, password | Account created, auto logged in |
+| Sign Up | Attempt duplicate email | Error alert: "An account with that email already exists" |
+| Sign Up | Password under 6 characters | Error alert: "Password must be at least 6 characters" |
+| Sign Up | Empty name field | Error alert: "Please enter your name" |
+| Sign In | Login with valid credentials | Logged in, user's habits displayed |
+| Sign In | Wrong password | Error alert: "Incorrect password" |
+| Sign In | Non-existent email | Error alert: "No account found with that email" |
+| Sign Out | Tap sign-out button | Returns to login screen, session cleared |
+| Session | Close and reopen app | User stays logged in automatically |
+| Add Habit | Create habit with name, emoji, and reminder | Habit appears in list, notification scheduled |
+| Add Habit | Try to save with empty name | Save button is disabled |
+| Toggle | Tap checkmark on incomplete habit | Completion recorded, icon changes to filled |
+| Toggle | Tap checkmark on completed habit | Last completion removed (undo) |
+| Multi-target | Tap 3 times on a 3/day habit | Progress shows 1/3, 2/3, 3/3 |
+| Streak | Complete habit on consecutive days | Streak count increases correctly |
+| Delete | Swipe to delete a habit | Habit removed, notification cancelled |
+| Reminder | Enable reminder with a time | Daily notification appears at set time |
+| Garden | View garden with habits at various growth | Plants display correct heights based on 7-day data |
+| Insights | View dashboard with completion data | Chart, stat cards, and insight cards displayed |
+| User isolation | Log in as a different user | Only that user's habits are visible |
 
-Errors don't crash the app. Empty habit names, save failures, and other issues surface as user-facing alerts — satisfying the G requirement *"appen ska visa ett tydligt felmeddelande i gränssnittet istället för att stängas ner."*
+### Validator Testing
 
----
-
-## Build & Run
-
-Requirements: Xcode 15+, iOS 17+ (uses SwiftData and `ContentUnavailableView`).
-
-1. Open `HabitGarden.xcodeproj`.
-2. Select an iOS Simulator (iPhone 15 or newer recommended).
-3. Press ⌘R to build and run.
-4. Tap **+** to add your first habit.
-5. Tap the **leaf** icon for the animated Garden, or the **chart** icon for Insights.
-
----
-
-## Development Log
-
-The project was built iteratively, with each phase committed separately to git.
-
-**Phase 1 — Project setup**
-Created the Xcode project with SwiftUI + SwiftData. Initialised the git repo. Decided against Firebase in favour of SwiftData since the assignment specifies "standardkomponenter" and the app is single-user / offline-first.
-
-**Phase 2 — Data model**
-Defined `Habit` and `HabitCompletion` as `@Model` classes with a one-to-many cascade-delete relationship.
-
-**Phase 3 — App entry point**
-Replaced the boilerplate `sharedModelContainer` with the cleaner `.modelContainer(for:)` scene modifier and pointed the window at `HabitListView`.
-
-**Phase 4 — Streak calculation**
-Wrote `StreakCalculator` with two static methods. Handled the midnight edge case so the streak doesn't reset when the user hasn't yet checked off today's habit.
-
-**Phase 5 — ViewModel**
-Created `HabitListViewModel` (`@MainActor @Observable`) with `addHabit`, `toggle`, `delete`, and an `errorMessage` property used by the View's alert.
-
-**Phase 6 — Main list screen**
-Built `HabitListView` with `NavigationStack`, `List`, swipe-to-delete, and an empty state via `ContentUnavailableView`. Added `HabitRow` showing emoji, name, streak, and a check button.
-
-**Phase 7 — Add habit sheet**
-Built `AddHabitView` with a `Form`, a TextField, and an emoji grid picker. Save is disabled until the name is non-empty.
-
-**Phase 8 — Insights (VG Track 3)**
-Built `InsightsView` using SwiftUI Charts. Added two stat cards (week total, best streak), a 7-day `BarMark` chart, and a per-habit streak list. Wired into the toolbar via a chart-icon `NavigationLink`.
-
-**Phase 9 — Garden (bonus WOW)**
-Built `GardenView` using `Canvas` wrapped in `TimelineView(.animation)` for a continuously redrawing scene. Each habit becomes a plant whose stem height, leaf size, and flower scale come from a 7-day completion ratio. The sky tints based on the system clock (dawn / day / dusk / night).
-
-**Phase 10 — Smart Insights**
-Added `InsightEngine` and `SmartInsight`. The engine generates up to four observations: best time of day, best day of week, week-over-week trend, and most-consistent habit. Each insight has a data threshold so it doesn't fire on too little data. `InsightCard` handles both SF Symbol names and emoji glyphs.
+- All Swift files compile without errors or warnings in Xcode.
+- SwiftUI previews render correctly for all views.
 
 ---
 
-## What's Next
+## Bugs
 
-These are obvious extensions if the project continues past the assignment:
+### Resolved Bugs
 
-- **Track 2 — UserNotifications**: per-habit reminder time, scheduled with `UNUserNotificationCenter`.
-- **Track 1 — MapKit**: log GPS coordinates on completion and show a map of where habits happened.
-- **Share garden**: export the Garden canvas as a PNG using `ImageRenderer`.
-- **Widget**: a Lock Screen / Home Screen widget showing today's progress, with an interactive App Intent to mark habits done.
+| Bug | Cause | Fix |
+|-----|-------|-----|
+| `Value of type 'AppAccount' has no member 'passwordHash'` | Property was named `password` in the model but referenced as `passwordHash` in the ViewModel | Renamed the property to `passwordHash` in AppAccount.swift |
+| Compiler type-check timeout in AddHabitView | Too many nested views in a single body expression | Extracted `symbolSection` into a separate computed property |
+| `Value of optional type 'String?' must be unwrapped` | `auth.currentUser?.id` passed where non-optional `String` was expected | Added `?? ""` fallback |
+| All users see all habits | Habit list was using the unfiltered `@Query` instead of per-user filtering | Replaced `habits` with `userHabits` (filtered by current user's ID) |
+
+### Known Bugs
+
+No known bugs at this time.
+
+---
+
+## Deployment
+
+### Requirements
+- **macOS 14.0+** (Sonoma or later)
+- **Xcode 16+**
+- **iOS 17.0+** target device or simulator
+
+### Steps to Run Locally
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/ibrahimjasim/HabitGarden.git
+   ```
+
+2. Open the project in Xcode:
+   ```bash
+   cd HabitGarden
+   open HabitGarden.xcodeproj
+   ```
+
+3. Select a target device or simulator (iPhone 15 or newer recommended).
+
+4. Build and run the project (`Cmd + R`).
+
+5. The app uses SwiftData with a local SQLite database — no external services, backend servers, or API keys are required.
+
+### App Store Deployment
+
+To deploy to the App Store:
+1. Configure signing with a valid Apple Developer account in Xcode.
+2. Set the Bundle Identifier to a unique value.
+3. Archive the build via **Product > Archive** in Xcode.
+4. Upload to App Store Connect and submit for review.
 
 ---
 
 ## Credits
 
-Built by Ibrahim Jasim Alsalih as a course project, May 2026.
+### Frameworks & Documentation
+- [Apple SwiftUI Documentation](https://developer.apple.com/documentation/swiftui)
+- [Apple SwiftData Documentation](https://developer.apple.com/documentation/swiftdata)
+- [Apple Swift Charts Documentation](https://developer.apple.com/documentation/charts)
+- [Apple CryptoKit Documentation](https://developer.apple.com/documentation/cryptokit)
+- [Apple UserNotifications Documentation](https://developer.apple.com/documentation/usernotifications)
+
+### Icons
+- [SF Symbols](https://developer.apple.com/sf-symbols/) — Apple's system icon library used for all navigation and UI icons throughout the app.
+
+### Inspiration
+- The garden visualisation concept is inspired by gamified habit apps that turn daily consistency into visible, growing progress.
+
+---
+
+Built by Ibrahim Jasim Alsalih — May 2026.
