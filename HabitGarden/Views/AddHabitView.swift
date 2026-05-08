@@ -8,13 +8,15 @@
 import SwiftUI
 import SwiftData
 
+// Form to create a new habit — presented as a sheet from HabitListView
 struct AddHabitView: View {
-    @Environment(\.modelContext) private var context
-    @Environment(\.dismiss) private var dismiss
-    @Environment(AuthViewModel.self) private var auth
+    @Environment(\.modelContext) private var context       // Database access
+    @Environment(\.dismiss) private var dismiss            // Closes this sheet
+    @Environment(AuthViewModel.self) private var auth      // Current user (to link the habit)
 
     let viewModel: HabitListViewModel
 
+    // Form state
     @State private var name = ""
     @State private var emoji = "🌱"
     @State private var showEmojiPicker = false
@@ -23,9 +25,10 @@ struct AddHabitView: View {
     @State private var reminderTime = Calendar.current.date(
         bySettingHour: 8, minute: 0, second: 0, of: .now) ?? .now
 
+    // Quick-pick emoji presets shown in the grid
     private let emojis = ["🌱", "💧", "📚", "🏃", "🧘", "💤", "🥗", "✍️", "🎨", "🎵"]
 
-    /// True when the chosen emoji isn't one of the quick presets and isn't empty.
+    // True when the user picked an emoji from the full picker (not from the presets)
     private var emojiIsCustom: Bool {
         !emoji.isEmpty && !emojis.contains(emoji)
     }

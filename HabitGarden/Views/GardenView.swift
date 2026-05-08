@@ -12,14 +12,19 @@
 import SwiftUI
 import SwiftData
 
+// The Garden view — a visual representation where each habit becomes a plant
+// Plants grow taller based on how consistently the habit was completed over the last 7 days
+// The sky color changes based on time of day, and plants sway gently with animation
 struct GardenView: View {
     @Query(sort: \Habit.createdAt) private var habits: [Habit]
 
     var body: some View {
         ZStack {
+            // Sky gradient that changes based on time of day
             timeOfDayGradient
                 .ignoresSafeArea()
 
+            // Canvas redraws at 30fps so the plants can sway smoothly
             TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
                 Canvas { context, size in
                     let time = timeline.date.timeIntervalSinceReferenceDate
@@ -27,6 +32,7 @@ struct GardenView: View {
                 }
             }
 
+            // Placeholder if no habits exist yet
             if habits.isEmpty {
                 ContentUnavailableView(
                     "Your garden is empty",
@@ -41,17 +47,18 @@ struct GardenView: View {
 
     // MARK: - Background
 
+    // Returns a gradient that matches the current time of day
     private var timeOfDayGradient: LinearGradient {
         let hour = Calendar.current.component(.hour, from: .now)
         let colors: [Color]
         switch hour {
-        case 5..<8:
+        case 5..<8:   // Sunrise
             colors = [.orange.opacity(0.45), .yellow.opacity(0.35), .cyan.opacity(0.30)]
-        case 8..<17:
+        case 8..<17:  // Daytime
             colors = [.cyan.opacity(0.45), .blue.opacity(0.20), .green.opacity(0.25)]
-        case 17..<20:
+        case 17..<20: // Sunset
             colors = [.purple.opacity(0.45), .orange.opacity(0.40), .pink.opacity(0.30)]
-        default:
+        default:      // Night
             colors = [.indigo.opacity(0.65), .black.opacity(0.55)]
         }
         return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
@@ -59,6 +66,7 @@ struct GardenView: View {
 
     // MARK: - Drawing
 
+    // Draws the entire garden scene: sun/moon, ground, and one plant per habit
     private func drawGarden(context: GraphicsContext, size: CGSize, time: Double) {
         let groundY = size.height * 0.78
 
@@ -168,7 +176,7 @@ struct GardenView: View {
 
     // MARK: - Growth logic
 
-    /// Returns 0.0–1.0 based on completions in the last 7 days.
+    // Returns 0.0 to 1.0 — how many of the last 7 days the habit was completed
     private func growthLevel(for habit: Habit, calendar: Calendar) -> CGFloat {
         let last7Days: [Date] = (0..<7).map { offset in
             calendar.startOfDay(for: calendar.date(byAdding: .day, value: -offset, to: .now)!)

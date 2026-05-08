@@ -8,10 +8,12 @@
 import SwiftUI
 import SwiftData
 
+// The login/sign-up screen — shown when the user is not logged in
 struct LoginView: View {
-    let auth: AuthViewModel
-    @Environment(\.modelContext) private var context
+    let auth: AuthViewModel                                 // Passed from the app entry point
+    @Environment(\.modelContext) private var context         // Database access for creating accounts
 
+    // Toggle between Sign In and Sign Up mode
     private enum Mode: String, CaseIterable, Identifiable {
         case signIn = "Sign In"
         case signUp = "Sign Up"
@@ -23,6 +25,7 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
 
+    // Button is only enabled when all required fields are filled
     private var canSubmit: Bool {
         let baseValid = !email.isEmpty && !password.isEmpty
         return mode == .signIn ? baseValid : (baseValid && !name.isEmpty)
@@ -32,6 +35,7 @@ struct LoginView: View {
         VStack(spacing: 24) {
             Spacer()
 
+            // App logo and tagline
             VStack(spacing: 12) {
                 Image(systemName: "leaf.circle.fill")
                     .font(.system(size: 70))
@@ -42,12 +46,14 @@ struct LoginView: View {
                     .foregroundStyle(.secondary)
             }
 
+            // Segmented control to switch between Sign In / Sign Up
             Picker("Mode", selection: $mode) {
                 ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
 
+            // Input fields — name only appears in Sign Up mode
             VStack(spacing: 12) {
                 if mode == .signUp {
                     TextField("Your name", text: $name)
@@ -74,6 +80,7 @@ struct LoginView: View {
             }
             .padding(.horizontal)
 
+            // Submit button — calls the appropriate auth method based on mode
             Button {
                 switch mode {
                 case .signIn:
@@ -96,6 +103,7 @@ struct LoginView: View {
 
             Spacer()
         }
+        // Error alert — shown when auth fails (wrong password, duplicate email, etc.)
         .alert(
             "Could not continue",
             isPresented: Binding(
