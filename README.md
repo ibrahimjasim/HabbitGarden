@@ -43,6 +43,13 @@ HabitGarden uses a nature-inspired, soft green palette that reinforces the garde
 
 ## UX Design
 
+### User Stories
+* All user stories can be found [Here](USERSTORIES.md)
+* Organised into 7 Epics: Authentication, Habit Management, Daily Tracking, Reminders, Garden View, Insights & Statistics, Data & Privacy
+* Prioritised using **MoSCoW** method: 13 Must Have, 7 Should Have, 3 Could Have
+
+---
+
 ### Navigation Map
 
 ```
