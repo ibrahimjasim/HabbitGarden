@@ -11,6 +11,7 @@ import SwiftData
 struct AddHabitView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthViewModel.self) private var auth
 
     let viewModel: HabitListViewModel
 
@@ -29,6 +30,66 @@ struct AddHabitView: View {
         !emoji.isEmpty && !emojis.contains(emoji)
     }
 
+    @ViewBuilder
+    private var symbolSection: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5)) {
+            ForEach(emojis, id: \.self) { item in
+                Text(item)
+                    .font(.largeTitle)
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(emoji == item ? Color.green.opacity(0.25) : .clear)
+                    )
+                    .onTapGesture {
+                        emoji = item
+                    }
+            }
+        }
+        .padding(.vertical, 4)
+
+        HStack(spacing: 8) {
+            Button {
+                showEmojiPicker = true
+            } label: {
+                HStack {
+                    Image(systemName: "face.smiling")
+                    Text("Browse more")
+                    if emojiIsCustom {
+                        Spacer()
+                        Text(emoji)
+                            .font(.title3)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(.tertiarySystemBackground))
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                emoji = ""
+            } label: {
+                HStack {
+                    Image(systemName: "circle.slash")
+                    Text("None")
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(emoji.isEmpty
+                              ? Color.green.opacity(0.25)
+                              : Color(.tertiarySystemBackground))
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -41,62 +102,7 @@ struct AddHabitView: View {
                 }
 
                 Section("Symbol") {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5)) {
-                        ForEach(emojis, id: \.self) { item in
-                            Text(item)
-                                .font(.largeTitle)
-                                .padding(8)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(emoji == item ? Color.green.opacity(0.25) : .clear)
-                                )
-                                .onTapGesture {
-                                    emoji = item
-                                }
-                        }
-                    }
-                    .padding(.vertical, 4)
-
-                    HStack(spacing: 8) {
-                        Button {
-                            showEmojiPicker = true
-                        } label: {
-                            HStack {
-                                Image(systemName: "face.smiling")
-                                Text("Browse more")
-                                if emojiIsCustom {
-                                    Spacer()
-                                    Text(emoji)
-                                        .font(.title3)
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color(.tertiarySystemBackground))
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        Button {
-                            emoji = ""
-                        } label: {
-                            HStack {
-                                Image(systemName: "circle.slash")
-                                Text("None")
-                            }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(emoji.isEmpty
-                                          ? Color.green.opacity(0.25)
-                                          : Color(.tertiarySystemBackground))
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    symbolSection
                 }
                 
                 Section ("Reminder") {
@@ -120,6 +126,7 @@ struct AddHabitView: View {
                             emoji: emoji,
                             targetPerDay: targetPerDay,
                             reminderTime: enableReminders ? reminderTime : nil,
+                            userId: auth.currentUser?.id ?? "",
                             context: context
                         )
                         if viewModel.errorMessage == nil {
