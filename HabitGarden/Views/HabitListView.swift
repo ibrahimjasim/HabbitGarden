@@ -10,14 +10,21 @@ import SwiftData
 
 struct HabitListView: View {
     @Environment(\.modelContext) private var context
+    @Environment(AuthViewModel.self) private var auth
     @Query(sort: \Habit.createdAt) private var habits: [Habit]
     @State private var viewModel = HabitListViewModel()
     @State private var showAddSheet = false
 
+    /// Only the current user's habits.
+    private var userHabits: [Habit] {
+        guard let userId = auth.currentUser?.id else { return [] }
+        return habits.filter { $0.userId == userId }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
-                if habits.isEmpty {
+                if userHabits.isEmpty {
                     ContentUnavailableView(
                         "No habits yet",
                         systemImage: "leaf",
@@ -25,7 +32,7 @@ struct HabitListView: View {
                     )
                 } else {
                     List {
-                        ForEach(habits) { habit in
+                        ForEach(userHabits) { habit in
                             NavigationLink(destination: HabitDetailView(habit: habit)) {
                                 HabitRow(habit: habit) {
                                     viewModel.toggle(habit: habit, context: context)
@@ -34,7 +41,7 @@ struct HabitListView: View {
                         }
                         .onDelete { indexSet in
                             for index in indexSet {
-                                viewModel.delete(habit: habits[index], context: context)
+                                viewModel.delete(habit: userHabits[index], context: context)
                             }
                         }
                     }
@@ -55,6 +62,13 @@ struct HabitListView: View {
                         GardenView()
                     } label: {
                         Image(systemName: "leaf.fill")
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        auth.signOut()
+                    } label: {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
