@@ -8,10 +8,11 @@
 import Foundation
 import SwiftData
 
+// Records a single completion — every time the user taps the checkmark, one of these is created
 @Model
 final class HabitCompletion {
-    var date: Date
-    var habit: Habit?
+    var date: Date       // When the habit was completed
+    var habit: Habit?    
 
     init(date: Date = .now) {
         self.date = date

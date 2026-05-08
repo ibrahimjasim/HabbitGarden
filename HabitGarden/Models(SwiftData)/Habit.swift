@@ -8,20 +8,23 @@
 import Foundation
 import SwiftData
 
+// The main data model — each Habit is one thing the user wants to track daily
 @Model
 final class Habit {
-    @Attribute(.unique) var id = UUID()
-    var userId: String?
-    var name: String
-    var emoji: String
-    var colorHex: String
-    var createdAt: Date
-    var reminderTime: Date?
+    @Attribute(.unique) var id = UUID()     // Unique identifier
+    var userId: String?                     // Which user owns this habit (links to AppAccount)
+    var name: String                        // e.g. "Morning walk"
+    var emoji: String                       // Visual symbol shown in the UI
+    var colorHex: String                    // Hex color for theming
+    var createdAt: Date                     // When the habit was created
+    var reminderTime: Date?                 // If set, the app sends a daily notification at this time
     var targetPerDay: Int = 1
+
+    // When a habit is deleted, all its completions are automatically deleted too
     @Relationship(deleteRule: .cascade, inverse: \HabitCompletion.habit)
     var completions: [HabitCompletion] = []
-    
-    
+
+
     init(name: String, emoji: String = "🌱", colorHex: String = "#34C759", targetPerDay: Int = 1, userId: String? = nil) {
             self.name = name
             self.emoji = emoji
