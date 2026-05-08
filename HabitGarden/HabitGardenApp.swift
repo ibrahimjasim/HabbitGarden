@@ -26,6 +26,7 @@ struct HabitGardenApp: App {
                 LoginView(auth: auth)
             }
         }
-        .modelContainer(for: [Habit.self, HabitCompletion.self])
+        .environment(auth)
+        .modelContainer(for: [Habit.self, HabitCompletion.self, AppAccount.self])
     }
 }
