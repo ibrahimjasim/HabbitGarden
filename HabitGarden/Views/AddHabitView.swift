@@ -24,6 +24,8 @@ struct AddHabitView: View {
     @State private var enableReminders = false
     @State private var reminderTime = Calendar.current.date(
         bySettingHour: 8, minute: 0, second: 0, of: .now) ?? .now
+    @State private var enableGoal = false
+    @State private var goalDays = 30
 
     // Quick-pick emoji presets shown in the grid
     private let emojis = ["🌱", "💧", "📚", "🏃", "🧘", "💤", "🥗", "✍️", "🎨", "🎵"]
@@ -103,6 +105,15 @@ struct AddHabitView: View {
                 Section("How many times per day?") {
                     Stepper("\(targetPerDay) time\(targetPerDay == 1 ? "" : "s")", value: $targetPerDay, in: 1...20)
                 }
+                Section("Goal duration"){
+                    Toggle("Set a goal", isOn: $enableGoal)
+                    if enableGoal {
+                        Stepper("\(goalDays) days", value: $goalDays, in: 7...365, step: 7)
+                        Text("e.g. quit smoking in \(goalDays) days")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 Section("Symbol") {
                     symbolSection
@@ -128,6 +139,7 @@ struct AddHabitView: View {
                             name: name,
                             emoji: emoji,
                             targetPerDay: targetPerDay,
+                            goalDays: enableGoal ? goalDays : nil,
                             reminderTime: enableReminders ? reminderTime : nil,
                             userId: auth.currentUser?.id ?? "",
                             context: context

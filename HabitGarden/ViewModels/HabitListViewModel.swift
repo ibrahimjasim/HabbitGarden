@@ -15,14 +15,14 @@ final class HabitListViewModel{
     var errorMessage: String?   // Shown in an alert if something fails
 
     // Creates a new habit and saves it to the database
-    func addHabit(name: String, emoji: String, targetPerDay: Int = 1, reminderTime: Date? = nil, userId: String, context: ModelContext) {
+    func addHabit(name: String, emoji: String, targetPerDay: Int = 1, goalDays: Int? = nil, reminderTime: Date? = nil, userId: String, context: ModelContext) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             errorMessage = "Name is required"
             return
         }
         // Create the habit and link it to the current user
-        let habit = Habit(name: trimmed, emoji: emoji, targetPerDay: targetPerDay, userId: userId)
+        let habit = Habit(name: trimmed, emoji: emoji, targetPerDay: targetPerDay,goalDays: goalDays, userId: userId)
         habit.reminderTime = reminderTime
         context.insert(habit)
         save(context: context)

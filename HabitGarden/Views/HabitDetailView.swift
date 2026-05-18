@@ -24,6 +24,21 @@ struct HabitDetailView: View {
         _name = State(initialValue: habit.name)
         _emoji = State(initialValue: habit.emoji)
     }
+    // Days that count toward the goal: days since the habit was created where target was met
+    private var daysCompleted: Int {
+        let calendar = Calendar.current
+        let perDay = Dictionary(grouping: habit.completions) {
+            calendar.startOfDay(for: $0.date)
+        }
+        return perDay.filter { $0.value.count >= habit.targetPerDay }.count
+    }
+
+    // Progress towards the goal: 0.0 to 1.0
+    private var goalProgress: Double {
+        guard let goal = habit.goalDays, goal > 0 else { return 0 }
+        return min(Double(daysCompleted) / Double(goal), 1.0)
+    }
+
 
     var body: some View {
         Form {
@@ -53,6 +68,28 @@ struct HabitDetailView: View {
                 LabeledContent("Total completions", value: "\(habit.completions.count)")
                 LabeledContent("Target per day", value: "\(habit.targetPerDay)")
                 LabeledContent("Created", value: habit.createdAt.formatted(date: .abbreviated, time: .omitted))
+            }
+            if let goal = habit.goalDays {
+                Section("Goal progress") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("\(daysCompleted) / \(goal) days")
+                                .font(.headline)
+                            Spacer()
+                            Text("\(Int(goalProgress * 100))%")
+                                .foregroundStyle(.green)
+                                .font(.headline)
+                        }
+                        ProgressView(value: goalProgress)
+                            .tint(.green)
+                        if daysCompleted >= goal {
+                            Label("Goal reached! 🎉", systemImage: "trophy.fill")
+                                .foregroundStyle(.orange)
+                                .font(.subheadline.bold())
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             }
 
             // Save changes and go back

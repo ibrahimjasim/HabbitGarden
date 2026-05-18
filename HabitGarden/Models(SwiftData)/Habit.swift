@@ -18,6 +18,7 @@ final class Habit {
     var colorHex: String                    // Hex color for theming
     var createdAt: Date                     // When the habit was created
     var reminderTime: Date?                 // If set, the app sends a daily notification at this time
+    var goalDays: Int?
     var targetPerDay: Int = 1
 
     // When a habit is deleted, all its completions are automatically deleted too
@@ -25,12 +26,13 @@ final class Habit {
     var completions: [HabitCompletion] = []
 
 
-    init(name: String, emoji: String = "🌱", colorHex: String = "#34C759", targetPerDay: Int = 1, userId: String? = nil) {
+    init(name: String, emoji: String = "🌱", colorHex: String = "#34C759", targetPerDay: Int = 1, goalDays: Int? = nil, userId: String? = nil) {
             self.name = name
             self.emoji = emoji
             self.colorHex = colorHex
             self.createdAt = .now
             self.targetPerDay = targetPerDay
+            self.goalDays = goalDays
             self.userId = userId
         }
 }
