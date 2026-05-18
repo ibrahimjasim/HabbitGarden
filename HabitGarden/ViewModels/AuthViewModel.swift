@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 import CryptoKit
+import AuthenticationServices
 
 // Handles all authentication logic: sign up, sign in, sign out
 // @MainActor ensures all UI updates happen on the main thread
@@ -97,6 +98,49 @@ final class AuthViewModel {
             startSession(for: account)
         } catch {
             errorMessage = "Sign in failed: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Sign in with Apple
+
+    func handleAppleSignIn(result: Result<ASAuthorization, Error>, context: ModelContext) {
+        switch result {
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                errorMessage = "Invalid Apple credential."
+                return
+            }
+
+            let appleUserId = credential.user
+            let fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+                .compactMap { $0 }
+                .joined(separator: " ")
+            let appleEmail = credential.email
+
+            // Check if an account with this Apple ID already exists
+            let descriptor = FetchDescriptor<AppAccount>(
+                predicate: #Predicate { $0.email == appleUserId }
+            )
+            do {
+                if let existing = try context.fetch(descriptor).first {
+                    startSession(for: existing)
+                } else {
+                    // Create a new account using the Apple ID as a unique identifier
+                    let account = AppAccount(
+                        email: appleUserId,
+                        name: fullName.isEmpty ? (appleEmail ?? "Apple User") : fullName,
+                        passwordHash: hash(appleUserId)
+                    )
+                    context.insert(account)
+                    try context.save()
+                    startSession(for: account)
+                }
+            } catch {
+                errorMessage = "Apple sign in failed: \(error.localizedDescription)"
+            }
+
+        case .failure(let error):
+            errorMessage = "Apple sign in failed: \(error.localizedDescription)"
         }
     }
 

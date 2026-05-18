@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import AuthenticationServices
 
 // The login/sign-up screen — shown when the user is not logged in
 struct LoginView: View {
@@ -99,6 +100,27 @@ struct LoginView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .disabled(!canSubmit)
+            .padding(.horizontal)
+
+            // Divider between email/password and Apple sign in
+            HStack {
+                Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
+                Text("or")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Rectangle().frame(height: 1).foregroundStyle(.secondary.opacity(0.3))
+            }
+            .padding(.horizontal)
+
+            // Sign in with Apple button
+            SignInWithAppleButton(.signIn) { request in
+                request.requestedScopes = [.fullName, .email]
+            } onCompletion: { result in
+                auth.handleAppleSignIn(result: result, context: context)
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 50)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .padding(.horizontal)
 
             Spacer()
