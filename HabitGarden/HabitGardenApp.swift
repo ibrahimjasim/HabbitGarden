@@ -34,6 +34,6 @@ struct HabitGardenApp: App {
         // Make the auth view-model available to every view in the app
         .environment(auth)
         // Set up the local database with all the models the app uses
-        .modelContainer(for: [Habit.self, HabitCompletion.self, AppAccount.self])
+        .modelContainer(for: [Habit.self, HabitCompletion.self, AppAccount.self, Program.self, ProgramStep.self])
     }
 }
