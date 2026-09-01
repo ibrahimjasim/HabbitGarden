@@ -16,7 +16,14 @@ import SwiftData
 // Plants grow taller based on how consistently the habit was completed over the last 7 days
 // The sky color changes based on time of day, and plants sway gently with animation
 struct GardenView: View {
+    @Environment(AuthViewModel.self) private var auth
     @Query(sort: \Habit.createdAt) private var habits: [Habit]
+
+    // Only this account's habits — keeps the garden private per user
+    private var userHabits: [Habit] {
+        guard let userId = auth.currentUser?.id else { return [] }
+        return habits.filter { $0.userId == userId }
+    }
 
     var body: some View {
         ZStack {
@@ -33,7 +40,7 @@ struct GardenView: View {
             }
 
             // Placeholder if no habits exist yet
-            if habits.isEmpty {
+            if userHabits.isEmpty {
                 ContentUnavailableView(
                     "Your garden is empty",
                     systemImage: "leaf.circle",
@@ -92,11 +99,11 @@ struct GardenView: View {
         )
 
         // Plants — laid out evenly across the width
-        guard !habits.isEmpty else { return }
+        guard !userHabits.isEmpty else { return }
         let calendar = Calendar.current
-        let plantSpacing = size.width / CGFloat(habits.count + 1)
+        let plantSpacing = size.width / CGFloat(userHabits.count + 1)
 
-        for (index, habit) in habits.enumerated() {
+        for (index, habit) in userHabits.enumerated() {
             let growth = growthLevel(for: habit, calendar: calendar)
             let baseX = plantSpacing * CGFloat(index + 1)
             let phase = time * 1.4 + Double(index) * 0.6
