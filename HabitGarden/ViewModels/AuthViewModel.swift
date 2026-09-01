@@ -151,6 +151,49 @@ final class AuthViewModel {
         UserDefaults.standard.removeObject(forKey: storageKey)  // Remove saved session
     }
 
+    // MARK: - Delete account
+
+    // Permanently removes the current user's account and everything they own.
+    // Call this only after the person has confirmed — there's no undo.
+    func deleteAccount(context: ModelContext) {
+        guard let userId = currentUser?.id else { return }
+
+        // Delete every habit owned by this user first — HabitCompletion cascades
+        // automatically via the @Relationship(deleteRule: .cascade) on Habit.
+        let habitDescriptor = FetchDescriptor<Habit>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let habits = try? context.fetch(habitDescriptor) {
+            for habit in habits {
+                NotificationManager.cancel(habitId: habit.id.uuidString)
+                context.delete(habit)
+            }
+        }
+
+        // Delete every program owned by this user too — ProgramStep cascades
+        // the same way via its own @Relationship(deleteRule: .cascade).
+        let programDescriptor = FetchDescriptor<Program>(
+            predicate: #Predicate { $0.userId == userId }
+        )
+        if let programs = try? context.fetch(programDescriptor) {
+            for program in programs {
+                context.delete(program)
+            }
+        }
+
+        // Delete the account record. Fetching all accounts and matching in memory
+        // (rather than inside #Predicate) because calling .uuidString on a UUID
+        // isn't reliably supported inside the SwiftData predicate macro.
+        if let accounts = try? context.fetch(FetchDescriptor<AppAccount>()) {
+            if let account = accounts.first(where: { $0.id.uuidString == userId }) {
+                context.delete(account)
+            }
+        }
+
+        try? context.save()
+        signOut()
+    }
+
     // MARK: - Private helpers
 
     // After successful sign-in/sign-up, save user info so the app remembers them
