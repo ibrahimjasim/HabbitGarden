@@ -15,6 +15,7 @@ struct HabitListView: View {
     @Query(sort: \Habit.createdAt) private var habits: [Habit] // All habits from the database
     @State private var viewModel = HabitListViewModel()
     @State private var showAddSheet = false
+    @State private var showDeleteAccountConfirm = false
 
     // Filter to only show habits that belong to the current user
     private var userHabits: [Habit] {
@@ -69,12 +70,21 @@ struct HabitListView: View {
                         Image(systemName: "leaf.fill")
                     }
                 }
-                // Sign out button
+                // Account menu — sign out, or permanently delete the account
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        auth.signOut()
+                    Menu {
+                        Button {
+                            auth.signOut()
+                        } label: {
+                            Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                        Button(role: .destructive) {
+                            showDeleteAccountConfirm = true
+                        } label: {
+                            Label("Delete Account", systemImage: "trash")
+                        }
                     } label: {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                        Image(systemName: "person.crop.circle")
                     }
                 }
                 // Add new habit button
@@ -102,6 +112,19 @@ struct HabitListView: View {
                 }
             } message: {
                 Text(viewModel.errorMessage ?? "")
+            }
+            // Confirms before permanently deleting the account and its data
+            .confirmationDialog(
+                "Delete your account?",
+                isPresented: $showDeleteAccountConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Account", role: .destructive) {
+                    auth.deleteAccount(context: context)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This permanently deletes your habits and your account. This can't be undone.")
             }
         }
     }
