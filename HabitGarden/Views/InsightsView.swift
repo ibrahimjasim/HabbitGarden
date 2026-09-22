@@ -3,7 +3,6 @@
 //  HabitGarden
 //
 //  VG Track 3 — Data & Statistics with SwiftUI Charts
-//  Created by Ibrahim Jasim Alsalih on 2026-05-04.
 //
 
 import SwiftUI
@@ -13,6 +12,7 @@ import Charts
 // The Insights screen — shows charts, stats, and smart insights about the user's habits
 struct InsightsView: View {
     @Environment(AuthViewModel.self) private var auth
+    @Environment(\.dismiss) private var dismiss
     @Query private var habits: [Habit]
 
     // Only this account's habits — keeps stats and insights private per user
@@ -36,7 +36,6 @@ struct InsightsView: View {
         }
     }
 
-
     // Total completions across all habits this week
     private var weekTotal: Int {
         last7Days.reduce(0) { $0 + $1.count }
@@ -55,94 +54,115 @@ struct InsightsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+        ZStack {
+            BaseplateBackground()
 
-                // MARK: Headline cards
-                HStack(spacing: 12) {
-                    StatCard(
-                        title: "This week",
-                        value: "\(weekTotal)",
-                        subtitle: "completions",
-                        symbol: "checkmark.seal.fill",
-                        color: .green
-                    )
-                    StatCard(
-                        title: "Best streak",
-                        value: "\(bestStreak)",
-                        subtitle: "days",
-                        symbol: "flame.fill",
-                        color: .orange
-                    )
-                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    topBar
 
-                // MARK: 7-day bar chart
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Last 7 days")
-                        .font(.headline)
-                    Chart(last7Days) { item in
-                        BarMark(
-                            x: .value("Day", item.date, unit: .day),
-                            y: .value("Completed", item.count)
+                    // MARK: Headline cards
+                    HStack(spacing: 12) {
+                        BrickStatCard(
+                            title: "This week",
+                            value: "\(weekTotal)",
+                            subtitle: "completions",
+                            symbol: "checkmark.seal.fill",
+                            tint: Brick.green
                         )
-                        .foregroundStyle(.green.gradient)
-                        .cornerRadius(6)
+                        BrickStatCard(
+                            title: "Best streak",
+                            value: "\(bestStreak)",
+                            subtitle: "days",
+                            symbol: "flame.fill",
+                            tint: Brick.red
+                        )
                     }
-                    .chartXAxis {
-                        AxisMarks(values: .stride(by: .day)) { value in
-                            AxisValueLabel(format: .dateTime.weekday(.abbreviated))
-                        }
-                    }
-                    .frame(height: 220)
-                }
 
-                // MARK: Smart Insights
-                if !insights.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "sparkles")
-                                .foregroundStyle(.purple)
-                            Text("Smart insights")
-                                .font(.headline)
+                    // MARK: 7-day bar chart
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Last 7 days").font(.brickHeading(17)).foregroundStyle(Brick.ink)
+                        Chart(last7Days) { item in
+                            BarMark(
+                                x: .value("Day", item.date, unit: .day),
+                                y: .value("Completed", item.count)
+                            )
+                            .foregroundStyle(Brick.blue)
+                            .cornerRadius(6)
                         }
-                        ForEach(insights) { insight in
-                            InsightCard(insight: insight)
-                        }
-                    }
-                }
-
-                // MARK: Per-habit streaks
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Streaks per habit")
-                        .font(.headline)
-
-                    if userHabits.isEmpty {
-                        Text("Add a habit to see your stats here.")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(userHabits) { habit in
-                            HStack {
-                                Text(habit.emoji)
-                                    .font(.title3)
-                                Text(habit.name)
-                                Spacer()
-                                Label(
-                                    "\(StreakCalculator.currentStreak(for: habit))",
-                                    systemImage: "flame.fill"
-                                )
-                                .foregroundStyle(.orange)
-                                .font(.subheadline.bold())
+                        .chartXAxis {
+                            AxisMarks(values: .stride(by: .day)) { value in
+                                AxisValueLabel(format: .dateTime.weekday(.abbreviated))
                             }
-                            .padding(.vertical, 4)
-                            Divider()
+                        }
+                        .frame(height: 200)
+                    }
+                    .padding(16)
+                    .brickCard(fill: Brick.white, cornerRadius: 18, borderWidth: 2.5, shadowOffset: 4)
+
+                    // MARK: Smart Insights
+                    if !insights.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "sparkles").foregroundStyle(Brick.purple)
+                                Text("Smart insights").font(.brickHeading(17)).foregroundStyle(Brick.ink)
+                            }
+                            ForEach(insights) { insight in
+                                BrickInsightCard(insight: insight)
+                            }
+                        }
+                    }
+
+                    // MARK: Per-habit streaks
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Streaks per habit").font(.brickHeading(17)).foregroundStyle(Brick.ink)
+
+                        if userHabits.isEmpty {
+                            Text("Add a habit to see your stats here.")
+                                .font(.brickBody(14))
+                                .foregroundStyle(Brick.ink.opacity(0.6))
+                        } else {
+                            VStack(spacing: 10) {
+                                ForEach(userHabits) { habit in
+                                    HStack {
+                                        Text(habit.emoji.isEmpty ? "🌱" : habit.emoji).font(.title3)
+                                        Text(habit.name).font(.brickBody(15)).foregroundStyle(Brick.ink)
+                                        Spacer()
+                                        Text("🔥 \(StreakCalculator.currentStreak(for: habit))")
+                                            .font(.brickBodyHeavy(14))
+                                            .foregroundStyle(Brick.ink)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .brickCard(fill: Brick.cream, cornerRadius: 14, borderWidth: 2, shadowOffset: 3)
+                                }
+                            }
                         }
                     }
                 }
+                .padding(20)
             }
-            .padding()
         }
-        .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var topBar: some View {
+        HStack(spacing: 14) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Brick.ink)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Brick.white))
+                    .overlay(Circle().stroke(Brick.ink, lineWidth: 2.5))
+                    .compositingGroup()
+                    .shadow(color: Brick.ink, radius: 0, x: 3, y: 3)
+            }
+            Text("Insights").font(.brickTitle(26)).foregroundStyle(Brick.ink)
+            Spacer()
+        }
+        .padding(.top, 4)
     }
 }
 
@@ -156,7 +176,7 @@ private struct DailyCount: Identifiable {
 }
 
 /// One smart-insight row. Handles both SF Symbol names and emoji symbols.
-private struct InsightCard: View {
+private struct BrickInsightCard: View {
     let insight: SmartInsight
 
     /// True if the symbol string is an emoji rather than an SF Symbol name.
@@ -176,50 +196,47 @@ private struct InsightCard: View {
                         .foregroundStyle(insight.color)
                 }
             }
-            .frame(width: 36, height: 36)
-            .background(insight.color.opacity(0.15))
-            .clipShape(Circle())
+            .frame(width: 40, height: 40)
+            .background(Circle().fill(Brick.white))
+            .overlay(Circle().stroke(Brick.ink, lineWidth: 2))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(insight.title)
-                    .font(.subheadline.bold())
-                Text(insight.message)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Text(insight.title).font(.brickHeading(14)).foregroundStyle(Brick.ink)
+                Text(insight.message).font(.brickBody(13)).foregroundStyle(Brick.ink.opacity(0.75))
             }
             Spacer()
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(.secondarySystemBackground))
-        )
+        .padding(14)
+        .brickCard(fill: Brick.cream, cornerRadius: 16, borderWidth: 2.5, shadowOffset: 3.5)
     }
 }
 
-/// A small reusable card for top-level stats.
-private struct StatCard: View {
+/// A small reusable brick card for top-level stats.
+private struct BrickStatCard: View {
     let title: String
     let value: String
     let subtitle: String
     let symbol: String
-    let color: Color
+    let tint: Color
+
+    private var textColor: Color { tint.brickTextColor }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label(title, systemImage: symbol)
-                .font(.caption)
-                .foregroundStyle(color)
+                .font(.brickBodyHeavy(12))
+                .foregroundStyle(textColor.opacity(0.9))
             Text(value)
-                .font(.system(size: 36, weight: .bold, design: .rounded))
+                .font(.brickTitle(34))
+                .foregroundStyle(textColor)
             Text(subtitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.brickBody(12))
+                .foregroundStyle(textColor.opacity(0.8))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(color.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(16)
+        .brickCard(fill: tint, cornerRadius: 18, borderWidth: 2.5, shadowOffset: 4)
+        .overlay(BrickStuds(count: 3, diameter: 8, color: tint), alignment: .top)
     }
 }
 
