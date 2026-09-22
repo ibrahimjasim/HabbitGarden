@@ -42,6 +42,33 @@ struct NotificationManager {
             }
         }
     }
+    // Schedules a one-time "you missed it" nudge for a habit if it wasn't
+        // completed yesterday. Cancels any pending nudge if it was completed.
+        static func rescheduleMissedYesterdayNudge(
+            habitId: String,
+            name: String,
+            emoji: String,
+            reminderTime: Date,
+            missedYesterday: Bool
+        ) {
+            let nudgeId = "\(habitId)-missed"
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [nudgeId])
+
+            guard missedYesterday else { return }
+
+            let content = UNMutableNotificationContent()
+            content.title = emoji.isEmpty ? "You missed a day" : "\(emoji) \(name)"
+            content.body = "You didn't complete \(name) yesterday — don't let it slip again today."
+            content.sound = .default
+
+            let comps = Calendar.current.dateComponents([.hour, .minute], from: reminderTime)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            let request = UNNotificationRequest(identifier: nudgeId, content: content, trigger: trigger)
+
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error { print("Error scheduling missed-day nudge: \(error)") }
+            }
+        }
 
     // Cancels the daily reminder when a habit is deleted
     static func cancel(habitId: String) {
