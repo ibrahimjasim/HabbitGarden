@@ -2,195 +2,271 @@
 //  GardenView.swift
 //  HabitGarden
 //
-//  The "WOW" view: each habit becomes a plant whose growth reflects
-//  the user's consistency over the last 7 days. Plants sway gently,
-//  and the sky tints based on the current time of day.
-//
-//  Created by Ibrahim Jasim Alsalih on 2026-05-04.
-//
 
 import SwiftUI
 import SwiftData
 
-// The Garden view — a visual representation where each habit becomes a plant
-// Plants grow taller based on how consistently the habit was completed over the last 7 days
-// The sky color changes based on time of day, and plants sway gently with animation
 struct GardenView: View {
     @Environment(AuthViewModel.self) private var auth
+    @Environment(\.dismiss) private var dismiss
     @Query(sort: \Habit.createdAt) private var habits: [Habit]
 
-    // Only this account's habits — keeps the garden private per user
     private var userHabits: [Habit] {
         guard let userId = auth.currentUser?.id else { return [] }
         return habits.filter { $0.userId == userId }
     }
 
+    private let maxTrunkBricks = 8
+
     var body: some View {
         ZStack {
-            // Sky gradient that changes based on time of day
-            timeOfDayGradient
-                .ignoresSafeArea()
+            skyGradient.ignoresSafeArea()
 
-            // Canvas redraws at 30fps so the plants can sway smoothly
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
-                Canvas { context, size in
-                    let time = timeline.date.timeIntervalSinceReferenceDate
-                    drawGarden(context: context, size: size, time: time)
+            sun
+
+            ZStack(alignment: .bottom) {
+                ground
+
+                if userHabits.isEmpty {
+                    ContentUnavailableView(
+                        "Your garden is empty",
+                        systemImage: "leaf.circle",
+                        description: Text("Add a habit to plant your first seed.")
+                    )
+                    .padding(.bottom, 100)
+                } else {
+                    HStack(alignment: .bottom, spacing: 0) {
+                        ForEach(userHabits) { habit in
+                            Spacer(minLength: 4)
+                            treeView(for: habit)
+                        }
+                        Spacer(minLength: 4)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 78)
                 }
             }
+            // The fix: force this block to fill all available height and pin
+            // its content to the bottom, instead of letting it hug its own
+            // (much shorter) content height and get centered by the outer ZStack.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .ignoresSafeArea(edges: .bottom)
 
-            // Placeholder if no habits exist yet
-            if userHabits.isEmpty {
-                ContentUnavailableView(
-                    "Your garden is empty",
-                    systemImage: "leaf.circle",
-                    description: Text("Add a habit to plant your first seed.")
-                )
+            VStack {
+                topBar
+                Spacer()
             }
         }
-        .navigationTitle("Garden")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
     }
 
-    // MARK: - Background
+    // MARK: - Top bar (back button + title)
 
-    // Returns a gradient that matches the current time of day
-    private var timeOfDayGradient: LinearGradient {
-        let hour = Calendar.current.component(.hour, from: .now)
-        let colors: [Color]
-        switch hour {
-        case 5..<8:   // Sunrise
-            colors = [.orange.opacity(0.45), .yellow.opacity(0.35), .cyan.opacity(0.30)]
-        case 8..<17:  // Daytime
-            colors = [.cyan.opacity(0.45), .blue.opacity(0.20), .green.opacity(0.25)]
-        case 17..<20: // Sunset
-            colors = [.purple.opacity(0.45), .orange.opacity(0.40), .pink.opacity(0.30)]
-        default:      // Night
-            colors = [.indigo.opacity(0.65), .black.opacity(0.55)]
+    private var topBar: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            backButton
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Garden").font(.brickTitle(28)).foregroundStyle(Brick.ink)
+                Text("Brick by brick — bloom when you hit your goal")
+                    .font(.brickBody(14)).foregroundStyle(Brick.ink.opacity(0.75))
+            }
         }
-        return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Drawing
-
-    // Draws the entire garden scene: sun/moon, ground, and one plant per habit
-    private func drawGarden(context: GraphicsContext, size: CGSize, time: Double) {
-        let groundY = size.height * 0.78
-
-        // Sun or moon
-        let hour = Calendar.current.component(.hour, from: .now)
-        let isNight = hour < 6 || hour >= 20
-        let celestialRect = CGRect(x: size.width * 0.78, y: size.height * 0.10,
-                                   width: 56, height: 56)
-        context.fill(
-            Path(ellipseIn: celestialRect),
-            with: .color(isNight ? .white.opacity(0.85) : .yellow.opacity(0.9))
-        )
-
-        // Ground
-        let groundRect = CGRect(x: 0, y: groundY, width: size.width, height: size.height - groundY)
-        context.fill(
-            Path(groundRect),
-            with: .linearGradient(
-                Gradient(colors: [.green.opacity(0.55), .brown.opacity(0.75)]),
-                startPoint: CGPoint(x: 0, y: groundY),
-                endPoint: CGPoint(x: 0, y: size.height)
-            )
-        )
-
-        // Plants — laid out evenly across the width
-        guard !userHabits.isEmpty else { return }
-        let calendar = Calendar.current
-        let plantSpacing = size.width / CGFloat(userHabits.count + 1)
-
-        for (index, habit) in userHabits.enumerated() {
-            let growth = growthLevel(for: habit, calendar: calendar)
-            let baseX = plantSpacing * CGFloat(index + 1)
-            let phase = time * 1.4 + Double(index) * 0.6
-            let sway = sin(phase) * 4 * Double(growth)
-
-            drawPlant(
-                context: context,
-                baseX: baseX,
-                groundY: groundY,
-                growth: growth,
-                emoji: habit.emoji,
-                sway: sway
-            )
+    private var backButton: some View {
+        Button { dismiss() } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Brick.ink)
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(Brick.white))
+                .overlay(Circle().stroke(Brick.ink, lineWidth: 2.5))
+                .compositingGroup()
+                .shadow(color: Brick.ink, radius: 0, x: 3, y: 3)
         }
     }
 
-    private func drawPlant(
-        context: GraphicsContext,
-        baseX: CGFloat,
-        groundY: CGFloat,
-        growth: CGFloat,
-        emoji: String,
-        sway: Double
-    ) {
-        let maxHeight: CGFloat = 140
-        // Always show a tiny sprout, even at 0% growth
-        let stemHeight = max(18, maxHeight * growth)
-        let topX = baseX + CGFloat(sway)
-        let topY = groundY - stemHeight
+    // MARK: - Sky, sun, ground
 
-        // Stem — a soft curve so it looks alive
-        var stemPath = Path()
-        stemPath.move(to: CGPoint(x: baseX, y: groundY))
-        stemPath.addQuadCurve(
-            to: CGPoint(x: topX, y: topY),
-            control: CGPoint(x: baseX + CGFloat(sway * 0.5), y: groundY - stemHeight * 0.5)
-        )
-        context.stroke(stemPath, with: .color(.green), lineWidth: 3)
-
-        // Leaves appear once the plant is past the sprout stage
-        if growth > 0.3 {
-            let leafY = groundY - stemHeight * 0.5
-            let leafW: CGFloat = 14 * growth
-            let leafH: CGFloat = leafW * 0.6
-            context.fill(
-                Path(ellipseIn: CGRect(x: baseX - leafW - 2, y: leafY - leafH / 2,
-                                       width: leafW, height: leafH)),
-                with: .color(.green.opacity(0.85))
-            )
-            context.fill(
-                Path(ellipseIn: CGRect(x: baseX + 2, y: leafY - leafH / 2,
-                                       width: leafW, height: leafH)),
-                with: .color(.green.opacity(0.85))
-            )
+    private var sun: some View {
+        GeometryReader { proxy in
+            Circle()
+                .fill(Brick.yellow)
+                .overlay(Circle().stroke(Brick.ink, lineWidth: 3))
+                .compositingGroup()
+                .shadow(color: Brick.ink, radius: 0, x: 5, y: 5)
+                .frame(width: 64, height: 64)
+                .position(x: proxy.size.width - 68, y: 108)
         }
+        .allowsHitTesting(false)
+        .ignoresSafeArea()
+    }
 
-        // Flower — the habit's emoji, scaled by growth.
-        // If the habit has no emoji, draw a simple flower bud instead so the
-        // plant still looks complete.
-        if emoji.isEmpty {
-            let budSize: CGFloat = 10 + 14 * growth
-            context.fill(
-                Path(ellipseIn: CGRect(x: topX - budSize / 2,
-                                       y: topY - budSize / 2,
-                                       width: budSize,
-                                       height: budSize)),
-                with: .color(.pink.opacity(0.85))
-            )
+    private var skyGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(hex: "#5EC8F2"), Color(hex: "#8ED8F5"),
+                Color(hex: "#BDE8D8"), Color(hex: "#9FDBA8"), Color(hex: "#7FCB86")
+            ],
+            startPoint: .top, endPoint: .bottom
+        )
+    }
+
+    private var ground: some View {
+        Rectangle()
+            .fill(Brick.green)
+            .overlay(Rectangle().frame(height: 3).foregroundStyle(Brick.ink), alignment: .top)
+            .frame(height: 210)
+    }
+
+    // MARK: - Tree stage
+
+    private enum TreeStage {
+        case seed
+        case growing(bricks: Int)
+        case bloomed(bricks: Int)
+    }
+
+    private func stage(for habit: Habit) -> TreeStage {
+        if let goal = habit.goalDays {
+            let completed = daysCompleted(for: habit)
+            if completed >= goal {
+                return .bloomed(bricks: min(goal, maxTrunkBricks))
+            } else if completed == 0 {
+                return .seed
+            } else {
+                return .growing(bricks: min(completed, maxTrunkBricks))
+            }
         } else {
-            let flowerSize: CGFloat = 22 + 30 * growth
-            context.draw(
-                Text(emoji).font(.system(size: flowerSize)),
-                at: CGPoint(x: topX, y: topY)
-            )
+            let streak = StreakCalculator.currentStreak(for: habit)
+            if streak == 0 { return .seed }
+            return .growing(bricks: min(streak, maxTrunkBricks))
         }
     }
 
-    // MARK: - Growth logic
+    // Same "days meeting target since creation" definition HabitDetailView
+    // already uses for goal progress, kept consistent here.
+    private func daysCompleted(for habit: Habit) -> Int {
+        let calendar = Calendar.current
+        let perDay = Dictionary(grouping: habit.completions) { calendar.startOfDay(for: $0.date) }
+        return perDay.filter { $0.value.count >= habit.targetPerDay }.count
+    }
 
-    // Returns 0.0 to 1.0 — how many of the last 7 days the habit was completed
-    private func growthLevel(for habit: Habit, calendar: Calendar) -> CGFloat {
-        let last7Days: [Date] = (0..<7).map { offset in
-            calendar.startOfDay(for: calendar.date(byAdding: .day, value: -offset, to: .now)!)
+    // MARK: - Tree drawing
+
+    @ViewBuilder
+    private func treeView(for habit: Habit) -> some View {
+        let streak = StreakCalculator.currentStreak(for: habit)
+        VStack(spacing: 0) {
+            switch stage(for: habit) {
+            case .seed:
+                seedView
+            case .growing(let bricks):
+                trunkView(count: bricks)
+            case .bloomed(let bricks):
+                VStack(spacing: 2) {
+                    canopyView
+                    trunkView(count: bricks, showTopStuds: false)
+                }
+            }
+            label(for: habit, streak: streak)
+                .padding(.top, 10)
         }
-        let completedDays = Set(habit.completions.map { calendar.startOfDay(for: $0.date) })
-        let hits = last7Days.filter { completedDays.contains($0) }.count
-        return CGFloat(hits) / 7.0
+    }
+
+    private var seedView: some View {
+        ZStack(alignment: .top) {
+            RoundedRectangle(cornerRadius: 9)
+                .fill(Brick.brown)
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(Brick.ink, lineWidth: 2))
+                .frame(width: 22, height: 15)
+            Capsule()
+                .fill(Brick.green)
+                .overlay(Capsule().stroke(Brick.ink, lineWidth: 1.5))
+                .frame(width: 7, height: 11)
+                .rotationEffect(.degrees(-6))
+                .offset(y: -9)
+        }
+        .compositingGroup()
+        .shadow(color: Brick.ink, radius: 0, x: 2, y: 2)
+    }
+
+    private func trunkView(count: Int, showTopStuds: Bool = true) -> some View {
+        VStack(spacing: 4) {
+            ForEach(0..<count, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Brick.brown)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Brick.ink, lineWidth: 2.5))
+                    .frame(width: 52, height: 24)
+                    .compositingGroup()
+                    .shadow(color: Brick.ink, radius: 0, x: 3, y: 3)
+                    .overlay(
+                        (showTopStuds && i == count - 1)
+                            ? AnyView(BrickStuds(count: 2, diameter: 9, color: Brick.brown))
+                            : AnyView(EmptyView()),
+                        alignment: .top
+                    )
+            }
+        }
+    }
+
+    private var canopyView: some View {
+        VStack(spacing: -7) {
+            HStack(spacing: 3) {
+                canopyBrick(withStud: true)
+                canopyBrick(withStud: true)
+            }
+            HStack(spacing: 3) {
+                canopyBrick(withStud: false)
+                canopyBrick(withStud: false)
+                canopyBrick(withStud: false)
+            }
+        }
+    }
+
+    private func canopyBrick(withStud: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 9)
+            .fill(Brick.green)
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(Brick.ink, lineWidth: 2))
+            .frame(width: 26, height: 20)
+            .compositingGroup()
+            .shadow(color: Brick.ink, radius: 0, x: 2, y: 2)
+            .overlay(
+                withStud ? AnyView(BrickStuds(count: 1, diameter: 7, color: Brick.green)) : AnyView(EmptyView()),
+                alignment: .top
+            )
+    }
+
+    private func label(for habit: Habit, streak: Int) -> some View {
+        VStack(spacing: 1) {
+            HStack(spacing: 4) {
+                Text(habit.emoji.isEmpty ? "🌱" : habit.emoji).font(.system(size: 13))
+                Text(habit.name).font(.brickHeading(11.5)).foregroundStyle(Brick.ink)
+            }
+            switch stage(for: habit) {
+            case .bloomed:
+                Text("🌿 Goal reached · \(streak) days")
+                    .font(.brickBodyHeavy(10)).foregroundStyle(Brick.ink.opacity(0.8))
+            case .seed:
+                Text("🌰 Just planted")
+                    .font(.brickBodyHeavy(10)).foregroundStyle(Brick.ink.opacity(0.8))
+            case .growing:
+                if let goal = habit.goalDays {
+                    Text("🔥 \(daysCompleted(for: habit))/\(goal) days")
+                        .font(.brickBodyHeavy(10)).foregroundStyle(Brick.ink.opacity(0.8))
+                } else {
+                    Text("🔥 \(streak) days")
+                        .font(.brickBodyHeavy(10)).foregroundStyle(Brick.ink.opacity(0.8))
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .brickCard(fill: Brick.cream, cornerRadius: 12, borderWidth: 2.5, shadowOffset: 2.5)
     }
 }
 
