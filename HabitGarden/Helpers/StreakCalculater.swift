@@ -52,6 +52,18 @@ struct StreakCalculator {
     static func isCompletedToday(_ habit: Habit) -> Bool {
         isCompletedToday(habit.completions) >= habit.targetPerDay
     }
-}
+    
+    static func wasCompletedYesterday(_ habit: Habit) -> Bool {
+        let calendar = Calendar.current
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: .now) else { return false }
+        let start = calendar.startOfDay(for: yesterday)
+        let count = habit.completions.filter {
+            calendar.isDate($0.date, inSameDayAs: start)
+        }.count
+        return count >= habit.targetPerDay
+            
+        }
+    }
+
 
 
